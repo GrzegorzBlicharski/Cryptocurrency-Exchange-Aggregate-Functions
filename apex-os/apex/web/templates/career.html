@@ -1,0 +1,32 @@
+{% extends "base.html" %}{% from "_macros.html" import why, score %}
+{% block content %}{% set st = rep.status %}
+<h1>Career intelligence <span class="score">{{ score(st.score) }}</span></h1>
+<div class="card hero"><div>{{ st.headline }}</div><div class="small"><b>So what:</b> {{ st.so_what }}</div>
+{% if st.metrics.filtered_out %}<div class="small muted">{{ st.metrics.filtered_out }} low-signal leads hidden by the quality filter.</div>{% endif %}</div>
+<h2>High-signal opportunities</h2>
+{% for o in rep.extras.get("opportunities", []) %}<div class="card">
+<div class="row between"><h3>{{ o.title }} · {{ o.organization }}</h3><span class="chip">match {{ "%.0f"|format(o.match * 100) }}%</span></div>
+<div class="kv"><span class="muted">WHY IT MATTERS</span><span>{{ o.why_it_matters }}</span>
+<span class="muted">MATCH</span><span>{{ "%.0f"|format(o.match * 100) }}% weighted requirement coverage</span>
+<span class="muted">SKILL GAP</span><span>{% for g in o.skill_gap %}{{ g.skill }} {{ g.current_level }}→{{ g.required_level }}{% if not g.required %} (optional){% endif %}{% if not loop.last %}, {% endif %}{% else %}none{% endfor %}</span>
+<span class="muted">SALARY / POTENTIAL</span><span>{% if o.salary %}{{ o.salary.text }} <span class="muted small">(source: {{ o.salary.source }})</span>{% else %}<span class="muted">{{ o.salary_note or "no reliable data" }}</span>{% endif %}</span>
+<span class="muted">REQUIRED ACTION</span><span><b>{{ o.required_action }}</b></span>
+<span class="muted">DEADLINE</span><span>{{ o.deadline or "—" }}{% if o.days_left is not none %} ({{ o.days_left }} d){% endif %}</span>
+<span class="muted">SOURCE</span><span class="small">{{ o.source }}{% if o.retrieved_at %} · retrieved {{ o.retrieved_at[:10] }}{% endif %}</span></div>
+{% if o.injection_flags %}<div class="small error">⚠ External text contains suspicious patterns ({{ o.injection_flags | join(", ") }}). Treated as data only.</div>{% endif %}
+<form class="row" method="post" action="/career/{{ o.id }}/status"><select name="status">{% for s in ["new", "shortlisted", "applied", "rejected", "archived"] %}<option>{{ s }}</option>{% endfor %}</select><button>Update</button>
+<span class="small muted">"applied" records that <b>you</b> applied. APEX never submits applications.</span></form></div>
+{% else %}<p class="muted">No high-signal opportunities.</p>{% endfor %}
+{% if rep.candidates %}<h2>Proposed actions</h2>{% for c in rep.candidates %}<div class="card"><b>{{ c.title }}</b><div class="small muted">{{ c.detail }}</div>{{ why(c.why) }}</div>{% endfor %}{% endif %}
+<h2>Add opportunity</h2>
+<form class="card form" method="post" action="/career">
+<div><label>Title *</label><input name="title" required></div><div><label>Organization</label><input name="organization"></div>
+<div><label>Location</label><input name="location"></div><div><label>Deadline</label><input type="date" name="deadline"></div>
+<div class="full"><label>URL</label><input name="url"></div>
+<div class="full"><label>Requirements — one per line: <code>Skill: level(1-5) [optional]</code></label><textarea name="requirements" placeholder="German: 4&#10;Contract law: 3&#10;GDPR: 2 optional"></textarea></div>
+<div><label>Salary (only with a source)</label><input name="salary_text"></div><div><label>Salary source</label><input name="salary_source"></div>
+<div><label>Strategic fit 1-5</label><input name="strategic_fit" value="3" inputmode="numeric"></div><div><label>Source</label><input name="source" value="manual"></div>
+<div class="full"><label>Description (pasted text is sanitized and scanned for prompt injection)</label><textarea name="description"></textarea></div>
+<div class="full"><button class="primary">Add</button></div></form>
+<p class="small muted">Automatic job search (web/API sources) is planned for phase 3 — see Settings → Integrations.</p>
+{% endblock %}

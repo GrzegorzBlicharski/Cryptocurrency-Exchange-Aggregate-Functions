@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}<h1>APEX Radar</h1>
+<p class="small muted">Only HIGH EXPECTED VALUE items (EV ≥ {{ threshold }}). EV = relevance × impact × evidence × actionability, divided by time and money cost. {{ hidden }} item(s) below threshold hidden. <a href="/radar?show={{ 'pass' if show == 'all' else 'all' }}">{{ 'Hide' if show == 'all' else 'Show' }} them</a></p>
+{% for i in items %}<div class="card"><div class="row between"><b>{{ i.title }}</b><span class="chip">{{ i.category }} · EV {{ i.expected_value }}</span></div>
+<div class="small">{{ i.summary }}</div>
+<div class="small muted">relevance {{ i.relevance }} · impact {{ i.impact }} · evidence {{ i.evidence }} · actionability {{ i.actionability }} · {{ i.time_cost_h }} h · {{ i.money_cost }} €{% if i.url %} · <a href="{{ i.url }}" rel="noopener noreferrer nofollow">source</a>{% endif %}{% if i.retrieved_at %} · {{ i.retrieved_at.strftime("%Y-%m-%d") }}{% endif %}</div>
+{% if i.injection_flags %}<div class="small error">⚠ {{ i.injection_flags | join(", ") }}</div>{% endif %}
+<div class="row small">{% for s in ["kept", "dismissed"] %}<form class="inline" method="post" action="/radar/{{ i.id }}/{{ s }}"><button class="link">{{ s }}</button></form>{% endfor %}</div></div>
+{% else %}<p class="muted">Nothing above the bar. That's the point.</p>{% endfor %}
+<h2>Add finding</h2><form class="card form" method="post" action="/radar">
+<div><label>Category</label><select name="category">{% for c in categories %}<option>{{ c }}</option>{% endfor %}</select></div>
+<div><label>Title *</label><input name="title" required></div><div class="full"><label>URL</label><input name="url"></div>
+<div class="full"><label>Summary</label><textarea name="summary"></textarea></div>
+{% for f in ["relevance", "impact", "evidence", "actionability"] %}<div><label>{{ f }} 1-5</label><input name="{{ f }}" value="3" inputmode="numeric"></div>{% endfor %}
+<div><label>Time cost (h)</label><input name="time_cost_h" value="1" inputmode="decimal"></div><div><label>Money cost (€)</label><input name="money_cost" value="0" inputmode="decimal"></div>
+<div class="full"><button class="primary">Score & add</button></div></form>
+<p class="small muted">Automatic web research (with source + date) is planned for phase 3.</p>
+{% endblock %}

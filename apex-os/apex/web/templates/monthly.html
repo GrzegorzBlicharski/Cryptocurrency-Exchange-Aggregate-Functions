@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% from "_macros.html" import score %}
+{% block content %}<h1>Monthly executive review · {{ m.month }}</h1>
+<div class="tabs"><a href="/review">Evening</a><a href="/review/weekly">Weekly</a><a class="on" href="/review/monthly">Monthly</a></div>
+<div class="card tablewrap"><table><tr><th></th><th>Where I was (30 d ago)</th><th>Where I am</th></tr>
+{% for k, v in m.where_i_am.items() %}<tr><td>{{ k }}</td><td>{{ score(m.where_i_was.get(k)) }}</td><td>{{ score(v) }}</td></tr>{% endfor %}</table></div>
+<div class="grid">
+<div class="card"><div class="muted small">WHAT ACTUALLY IMPROVED</div><ul class="plain small">{% for x in m.improved %}<li>{{ x }}</li>{% else %}<li class="muted">—</li>{% endfor %}</ul></div>
+<div class="card"><div class="muted small">WHAT DID NOT</div><ul class="plain small">{% for x in m.did_not_improve %}<li>{{ x }}</li>{% else %}<li class="muted">—</li>{% endfor %}</ul></div>
+<div class="card"><div class="muted small">BIGGEST BOTTLENECK</div><b>{{ m.bottleneck or "—" }}</b></div>
+<div class="card"><div class="muted small">BIGGEST OPPORTUNITY</div>{{ m.opportunity or "—" }}</div>
+<div class="card"><div class="muted small">EXPERIMENTS</div><ul class="plain small">{% for e in m.experiments %}<li>{{ e.hypothesis }} → <b>{{ e.decision }}</b></li>{% else %}<li class="muted">none evaluated</li>{% endfor %}</ul></div>
+<div class="card hero"><div class="muted small">NEXT 30 DAYS</div><ol class="nba small">{% for x in m.next_30_days %}<li>{{ x }}</li>{% endfor %}</ol></div>
+</div>{% endblock %}

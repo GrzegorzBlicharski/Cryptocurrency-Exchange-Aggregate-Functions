@@ -1,0 +1,20 @@
+{% macro why(w, criteria=None) -%}
+{% if w %}<details><summary>WHY?</summary><div class="why">
+<div><b>Data used:</b> {{ (w.data_used or []) | join(", ") or "—" }}</div>
+<div><b>Reasoning:</b> {{ w.reasoning }}</div>
+<div><b>Expected benefit:</b> {{ w.expected_benefit }}</div>
+<div><b>Confidence:</b> {{ w.confidence }}</div>
+{% if w.alternatives %}<div><b>Alternatives:</b> {{ w.alternatives | join("; ") }}</div>{% endif %}
+{% if w.downside %}<div><b>Downside:</b> {{ w.downside }}</div>{% endif %}
+{% if w.insight %}<div>{{ insight(w.insight) }}</div>{% endif %}
+{% if criteria %}<div class="muted">Priority: impact {{ criteria.expected_impact }}/5 · urgency {{ criteria.urgency }}/5 · alignment {{ criteria.strategic_alignment }} · time {{ criteria.time_cost_min }} min · energy {{ criteria.energy_cost }}/5 · opp. cost {{ criteria.opportunity_cost }}/5 · reversibility {{ criteria.reversibility }}/5 · confidence {{ criteria.confidence }} → <b>{{ criteria.score }}</b></div>{% endif %}
+</div></details>{% endif %}
+{%- endmacro %}
+
+{% macro insight(i) -%}
+<span class="chip {{ i.epistemic }}">{{ i.epistemic }}</span> <span class="chip">conf: {{ i.confidence }}</span>
+{% if i.n %}<span class="chip">n={{ i.n }}</span>{% endif %}
+{% if i.caveat %}<div class="muted small">{{ i.caveat }}</div>{% endif %}
+{%- endmacro %}
+
+{% macro score(v) -%}{% if v is none %}<span class="muted">—</span>{% else %}{{ "%.0f"|format(v) }}{% endif %}{%- endmacro %}

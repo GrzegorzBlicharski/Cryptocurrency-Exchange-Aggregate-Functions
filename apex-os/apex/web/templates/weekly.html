@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% from "_macros.html" import score %}
+{% block content %}<h1>Weekly strategic review · week ending {{ w.week_end }}</h1>
+<div class="tabs"><a href="/review">Evening</a><a class="on" href="/review/weekly">Weekly</a><a href="/review/monthly">Monthly</a></div>
+<div class="card tablewrap"><table><tr><th>Domain</th><th>7 d ago</th><th>Now</th><th>Δ</th><th>So what</th></tr>
+{% for k, d in w.domains.items() %}<tr><td>{{ d.label }}</td><td>{{ score(d.then) }}</td><td>{{ score(d.now) }}</td>
+<td class="{{ 'up' if d.delta and d.delta > 0 else 'down' if d.delta and d.delta < 0 }}">{{ "%+.0f"|format(d.delta) if d.delta is not none else "—" }}</td><td class="small">{{ d.so_what }}</td></tr>{% endfor %}
+<tr><td>Sustainability</td><td>{{ score(w.sustainability.then) }}</td><td>{{ score(w.sustainability.now) }}</td><td></td><td></td></tr></table></div>
+<div class="grid">{% for k in ["KEEP", "STOP", "START", "INCREASE", "DECREASE", "EXPERIMENT"] %}
+<div class="card"><div class="muted small">{{ k }}</div><ul class="plain small">{% for x in w[k] %}<li>{{ x }}</li>{% else %}<li class="muted">—</li>{% endfor %}</ul></div>{% endfor %}</div>
+<p class="small muted">Bottleneck: <b>{{ w.bottleneck or "—" }}</b>. Rules are deterministic and based on measured deltas; ±3 points counts as no change.</p>
+{% endblock %}

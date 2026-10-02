@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% from "_macros.html" import why, score, insight %}
+{% block content %}{% set st = rep.status %}
+<h1>{{ st.label }} <span class="score">{{ score(st.score) }}</span></h1>
+<div class="card hero"><div>{{ st.headline }}</div><div class="small"><b>So what:</b> {{ st.so_what }}</div>{% if st.needs %}<div class="small muted">Needed: {{ st.needs }}</div>{% endif %}</div>
+{% if st.metrics %}<h2>Metrics</h2><div class="card kv">{% for k, v in st.metrics.items() if k != "velocity" %}<span class="muted">{{ k.replace("_", " ") }}</span><span>{% if v is mapping %}{% for a, b in v.items() %}{{ a }}: {{ "%.0f"|format(b) if b is number else b }}{% if not loop.last %} · {% endif %}{% endfor %}{% elif v is number %}{{ "%.2f"|format(v) if v is float else v }}{% elif v is iterable and v is not string %}{{ v | join(", ") or "—" }}{% else %}{{ v if v is not none else "—" }}{% endif %}</span>{% endfor %}
+{% set vel = st.metrics.get("velocity") %}{% if vel %}<span class="muted">progress velocity</span><span>{% if vel.units_per_100h is not none %}{{ "%+.1f"|format(vel.units_per_100h) }} units/100 h ({{ vel.hours }} h){% else %}{{ vel.reason }}{% endif %}</span>{% endif %}</div>{% endif %}
+{% if rep.signals %}<h2>Signals</h2>{% for s in rep.signals %}<div class="card"><div class="row"><span class="chip">{{ s.kind }}</span><span class="chip">sev {{ s.severity }}</span></div><b>{{ s.title }}</b><div class="small">{{ s.so_what }}</div><div class="small">{{ insight(s.insight) }}</div></div>{% endfor %}{% endif %}
+{% if rep.candidates %}<h2>Proposed actions</h2>{% for c in rep.candidates %}<div class="card"><b>{{ c.title }}</b> <span class="chip">{{ c.minutes }} min</span><div class="small muted">{{ c.detail }}</div>{{ why(c.why) }}</div>{% endfor %}{% endif %}
+{% if rep.extras.twin %}<h2>Learning patterns (→ Digital Twin)</h2>{% for f in rep.extras.twin %}<div class="card"><div class="muted small">{{ f.question }}</div><b>{{ f.statement }}</b><div class="small">{{ insight(f) }}</div></div>{% endfor %}{% endif %}
+{% if rep.extras.findings %}<h2>Findings</h2>{% for f in rep.extras.findings %}<div class="card"><b>{{ f.statement }}</b><div class="small">{{ insight(f) }}</div></div>{% endfor %}{% endif %}
+<p class="small"><a href="/log">Log data →</a></p>
+{% endblock %}

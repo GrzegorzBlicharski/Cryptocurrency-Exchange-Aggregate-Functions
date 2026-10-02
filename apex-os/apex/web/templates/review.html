@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}<h1>Evening review · {{ today }}</h1>
+<div class="tabs"><a class="on" href="/review">Evening</a><a href="/review/weekly">Weekly</a><a href="/review/monthly">Monthly</a></div>
+<div class="grid">
+<div class="card"><div class="muted small">PLANNED</div><ul class="plain small">{% for x in summary.planned %}<li>{{ x.title }} ({{ x.minutes }} min)</li>{% else %}<li class="muted">nothing planned</li>{% endfor %}</ul></div>
+<div class="card"><div class="muted small">DONE</div><ul class="plain small">{% for x in summary.done + summary.partial %}<li>{{ x.title }}{% if x in summary.partial %} (partial){% endif %}</li>{% else %}<li class="muted">—</li>{% endfor %}</ul></div>
+<div class="card"><div class="muted small">FAILED</div><ul class="plain small">{% for x in summary.failed %}<li>{{ x.title }}{% if x.reason %} — {{ x.reason }}{% endif %}</li>{% else %}<li class="muted">—</li>{% endfor %}</ul></div>
+</div>
+<form class="card form" method="post" action="/review">
+<div class="full"><label>WHY did things fail? (one line)</label><input name="why_failed" value="{{ review.why_failed if review and review.why_failed else '' }}"></div>
+<div class="full"><label>WHAT was learned?</label><input name="learned" value="{{ review.learned if review and review.learned else '' }}"></div>
+<div class="full"><label>WHAT changes tomorrow?</label><input name="change_tomorrow" value="{{ review.change_tomorrow if review and review.change_tomorrow else '' }}"></div>
+<div><label>Energy now (1-10)</label><input name="energy_end" inputmode="numeric" value="{{ review.energy_end if review and review.energy_end else '' }}"></div>
+<div class="full"><button class="primary">Save (2 minutes, not 20)</button></div></form>
+{% endblock %}

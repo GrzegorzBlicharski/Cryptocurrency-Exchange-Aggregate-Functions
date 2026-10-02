@@ -1,0 +1,56 @@
+{% extends "base.html" %}{% from "_macros.html" import why, score, insight %}
+{% block content %}
+{% set s = plan.sustainability %}{% set top = plan.top %}
+<div class="grid">
+  <div class="card"><div class="muted small">APEX SCORE · where am I now?</div>
+    <div class="score">{{ score(plan.apex_score) }}<small> /100</small></div>
+    <div class="small">Bottleneck: <b>{{ plan.bottleneck or "—" }}</b></div>
+    <details><summary>WHY?</summary><div class="why">{{ plan.apex_explain }}</div></details></div>
+  <div class="card"><div class="muted small">SUSTAINABILITY · can I sustain this?</div>
+    <div class="score band-{{ s.band }}">{{ score(s.index) }}<small> {{ s.band }}</small></div>
+    <div class="small">Capacity today: <b>{{ plan.capacity_min }} min</b> focus ({{ plan.capacity_left_min }} left)</div>
+    {% if s.drivers %}<div class="small muted">Holding back: {{ s.drivers | join(", ") }}</div>{% endif %}
+    <details><summary>WHY?</summary><div class="why">Components: {% for k, v in s.components.items() %}{{ k }} {{ v }}{% if not loop.last %} · {% endif %}{% endfor %}. Band sets capacity ×{{ s.capacity_factor }}; in STRAINED or worse, recovery actions are admitted first and high-energy work is shrunk.</div></details></div>
+  <div class="card hero"><div class="muted small">TODAY'S #1 PRIORITY · what matters most?</div>
+    {% if top %}<h3>{{ top.action.title }}</h3><div class="small">{{ top.action.detail }}</div>
+    <div class="small muted">{{ top.action.minutes }} min · score {{ top.score }}{% if top.note %} · {{ top.note }}{% endif %}</div>
+    {{ why(top.action.why, top.criteria) }}
+    {% else %}<p class="muted">Nothing to prioritize yet. Add goals and log a few days.</p>{% endif %}</div>
+</div>
+
+{% if alerts %}<h2>Important alerts</h2><div class="grid">{% for a in alerts %}
+<div class="card alert {{ 'p5' if a.priority >= 100 }}"><div class="row between"><span class="chip">{{ a.kind }}</span>{% if a.deadline %}<span class="chip">due {{ a.deadline }}</span>{% endif %}</div>
+<h3>{{ a.title }}</h3><div class="small">{{ a.so_what }}</div>{% if a.action_id %}<a class="small" href="/actions">Prepared action awaiting you →</a>{% endif %}</div>
+{% endfor %}</div>{% endif %}
+
+<h2>Next best actions · what is the highest-value next step?</h2>
+<div class="card"><ol class="nba">{% for a in plan.admitted %}{% set r = recs.get(a.action.key) %}
+<li><div class="row between"><b>{{ a.action.title }}</b><span class="chip">{{ a.action.domain }} · {{ a.action.minutes }} min · {{ a.score }}</span></div>
+<div class="small muted">{{ a.action.detail }}{% if a.note %} — <i>{{ a.note }}</i>{% endif %}</div>
+{{ why(a.action.why, a.criteria) }}
+{% if r and r.status == "proposed" %}<form class="inline" method="post" action="/recommendations/{{ r.id }}/accept"><button class="link">+ add to plan</button></form>
+<form class="inline" method="post" action="/recommendations/{{ r.id }}/dismiss"><button class="link">dismiss</button></form>{% elif r %}<span class="chip">{{ r.status }}</span>{% endif %}
+</li>{% else %}<li class="muted">No actions yet.</li>{% endfor %}</ol>
+{% if plan.deferred %}<details><summary>Deferred today ({{ plan.deferred | length }}) — why not now</summary><ul class="plain small">
+{% for d in plan.deferred %}<li>{{ d.action.title }} <span class="muted">— {{ d.reason }} (score {{ d.score }})</span></li>{% endfor %}</ul></details>{% endif %}</div>
+
+<h2>Domains · what is holding me back?</h2>
+<div class="grid">{% for key in ["german", "law", "career", "attention", "movement", "recovery", "productivity", "learning"] %}{% set r = plan.reports[key] %}{% set st = r.status %}
+<a class="card" href="{{ '/' ~ key if key in ['german', 'law', 'career'] else '/domain/' ~ key }}">
+<div class="row between"><b>{{ st.label }}</b><span class="score">{{ score(st.score) }}</span></div>
+<div class="small">{{ st.headline }}</div><div class="small muted">So what: {{ st.so_what }}</div></a>{% endfor %}</div>
+
+<h2>Is the strategy working?</h2>
+<div class="grid">
+{% for key in ["german", "law"] %}{% set v = plan.reports[key].status.metrics.get("velocity") %}
+<div class="card"><div class="muted small">PROGRESS VELOCITY · {{ key | upper }}</div>
+{% if v and v.units_per_100h is not none %}<div class="score {{ 'up' if v.units_per_100h > 0 else 'down' }}">{{ "%+.1f"|format(v.units_per_100h) }}<small> units / 100 h</small></div>
+<div class="small muted">{{ "%.0f"|format(v.baseline) }} → {{ "%.0f"|format(v.current) }} over {{ v.hours }} h ({{ v.measurements }} measurements)</div>
+{% else %}<div class="small muted">Unknown: {{ v.reason if v else "no data" }}</div>{% endif %}</div>{% endfor %}
+<div class="card"><div class="muted small">ACTIVE EXPERIMENTS</div>
+{% for e in experiments %}<div class="small"><a href="/experiments">{{ e.hypothesis }}</a> <span class="muted">({{ e.metric }}, {{ e.days }} d)</span></div>
+{% else %}<div class="small muted">None. <a href="/experiments">Test a hypothesis →</a></div>{% endfor %}</div>
+<div class="card"><div class="muted small">DEADLINES (14 d)</div>
+{% for d in deadlines %}<div class="small">{{ d.deadline }} · {{ d.title }}</div>{% else %}<div class="small muted">None.</div>{% endfor %}</div>
+</div>
+{% endblock %}

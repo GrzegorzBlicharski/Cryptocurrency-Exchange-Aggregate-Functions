@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}<h1>Settings, privacy & integrations</h1>
+{% if msg %}<div class="flash">{{ msg }}</div>{% endif %}
+<h2>Autonomy (level 3 grants)</h2>
+<div class="card"><p class="small muted">Only reversible, internal actions can be pre-authorized. Always require approval: {{ forbidden | join(", ") }}.</p>
+{% for a in safe %}<form method="post" action="/settings/grant" class="row"><input type="hidden" name="action_type" value="{{ a }}">
+<input type="hidden" name="active" value=""><label class="row"><input type="checkbox" name="active" {{ 'checked' if grants.get(a) }}> {{ a }} — auto-add the top 3 next best actions to today's plan (undoable)</label><button>Save</button></form>{% endfor %}</div>
+<h2>Integrations</h2><div class="card tablewrap"><table><tr><th>Integration</th><th>Status</th><th>Purpose</th><th>Data scopes</th></tr>
+{% for i in integrations %}<tr><td>{{ i.name }}</td><td><span class="chip">{{ i.status }}</span></td><td class="small">{{ i.purpose }}</td><td class="small muted">{{ i.scopes | join(", ") or "—" }}</td></tr>{% endfor %}</table>
+<p class="small muted">Missing integrations never block APEX. Planned adapters are designed but not built yet — they are not simulated.</p></div>
+<h2>CSV import</h2><form class="card form" method="post" action="/settings/import" enctype="multipart/form-data">
+<div><label>Data kind</label><select name="kind">{% for k, v in specs.items() %}<option value="{{ k }}">{{ v.label }}</option>{% endfor %}</select></div>
+<div><label>File</label><input type="file" name="file" accept=".csv,text/csv"></div>
+<div class="full"><label>…or paste CSV (header row = field names, e.g. <code>day,steps,active_min</code>)</label><textarea name="text"></textarea></div>
+<div class="full"><button class="primary">Import</button></div></form>
+<h2>Your data</h2><div class="card">
+<p><a class="btn" href="/settings/export">Export everything (JSON)</a> <span class="small muted">Backups: <code>python -m apex backup</code>.</span></p>
+<p class="small muted">Sensitive notes are encrypted at rest (Fernet). Timezone {{ settings.timezone }} · interrupt budget {{ settings.interrupt_budget_per_day }}/day · agent action cap {{ settings.agent_daily_action_cap }}/day.</p>
+<form method="post" action="/settings/wipe" data-confirm="This permanently deletes all your APEX data."><label>Type <code>DELETE ALL MY DATA</code> to wipe all personal data</label>
+<div class="row"><input name="confirm"><button class="danger">Wipe</button></div></form>
+<form method="post" action="/logout"><p><button>Sign out</button></p></form></div>
+{% endblock %}

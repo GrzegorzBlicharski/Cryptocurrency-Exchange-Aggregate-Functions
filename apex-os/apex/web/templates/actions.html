@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}<h1>Approvals & agent actions</h1>
+<p class="small muted">Levels: 0 observe · 1 recommend · 2 prepare · 3 execute safe (pre-authorized, reversible) · 4 requires approval.
+Never automatic: {{ forbidden | sort | join(", ") }}. APEX has no external executor for these — after approval you perform them yourself.</p>
+{% for a in items %}<div class="card">
+<div class="row between"><b>{{ a.action_type }}</b><span class="chip">L{{ a.level }} · {{ a.status }}</span></div>
+<div class="small muted">by {{ a.agent }} · {{ a.created_at.strftime("%Y-%m-%d %H:%M") }}</div>
+{% if a.result %}<details {{ 'open' if a.status == 'prepared' }}><summary>Prepared content / result</summary><div class="why">
+{% for k, v in a.result.items() %}<div><b>{{ k }}:</b> {% if v is mapping or (v is iterable and v is not string) %}<pre class="small">{{ v | tojson(indent=1) }}</pre>{% else %}{{ v }}{% endif %}</div>{% endfor %}</div></details>{% endif %}
+<div class="row">{% if a.status in ("awaiting_approval", "prepared", "proposed") %}
+<form class="inline" method="post" action="/actions/{{ a.id }}/approve"><button class="primary">Approve</button></form>
+<form class="inline" method="post" action="/actions/{{ a.id }}/reject"><button>Reject</button></form>{% endif %}
+{% if a.status == "executed" and a.reversible %}<form class="inline" method="post" action="/actions/{{ a.id }}/undo"><button>Undo</button></form>{% endif %}</div>
+</div>{% else %}<p class="muted">No agent actions yet.</p>{% endfor %}
+{% endblock %}

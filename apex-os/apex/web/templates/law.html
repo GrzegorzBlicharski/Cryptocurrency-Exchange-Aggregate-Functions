@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% from "_macros.html" import why, score, insight %}
+{% block content %}{% set st = rep.status %}
+<h1>Law <span class="score">{{ score(st.score) }}</span></h1>
+<div class="card hero"><div>{{ st.headline }}</div><div class="small"><b>So what:</b> {{ st.so_what }}</div>
+{% if st.metrics.practical_missing %}<div class="small muted">No practice in 30 d: {{ st.metrics.practical_missing | join(", ") | replace("_", " ") }}</div>{% endif %}</div>
+<h2>Law knowledge graph</h2>
+<div class="card tablewrap"><table><tr><th>Area</th><th>Status</th><th>Accuracy</th><th>Evidence</th><th>Retention after ≥7 d gap</th><th>Last practice</th><th>Weakest topics</th></tr>
+{% for area, g in graph.items() %}<tr><td><b>{{ area }}</b></td><td class="st-{{ g.status.split()[0] }}"><b>{{ g.status }}</b></td>
+<td>{{ score(g.accuracy) }}%<meter min="0" max="100" low="50" high="80" optimum="100" value="{{ g.accuracy or 0 }}"></meter></td>
+<td>{{ g.evidence_n }} <span class="muted small">({{ g.confidence }})</span></td><td>{{ score(g.retention_after_gap) }}</td>
+<td>{{ g.days_since_practice if g.days_since_practice is not none else "—" }} d</td>
+<td class="small">{% for t in g.topics[:3] %}<span class="st-{{ t.status.split()[0] }}">{{ t.topic }} {{ "%.0f"|format(t.accuracy) }}%</span>{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>
+{% else %}<tr><td colspan="7" class="muted">No law data. Log question results with area + topic.</td></tr>{% endfor %}</table></div>
+<p class="small muted">STRONG ≥80% · DEVELOPING 65-80% · WEAK 50-65% · CRITICAL GAP &lt;50%. Tests count as 10 evidence points each. Low evidence = low confidence.</p>
+{% if rep.candidates %}<h2>Proposed actions</h2>{% for c in rep.candidates %}<div class="card"><b>{{ c.title }}</b> <span class="chip">{{ c.minutes }} min</span><div class="small muted">{{ c.detail }}</div>{{ why(c.why) }}</div>{% endfor %}{% endif %}
+{% endblock %}

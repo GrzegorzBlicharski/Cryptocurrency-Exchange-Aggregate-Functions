@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% from "_macros.html" import insight %}
+{% block content %}<h1>Experiment engine</h1>
+<p class="small muted">Days in the window are randomly assigned to treatment/control. Follow the schedule; APEX compares the metric between the two sets of days. Only finished experiments produce a TESTED_EFFECT.</p>
+{% for e in items %}<div class="card"><div class="row between"><b>{{ e.hypothesis }}</b><span class="chip">{{ e.status }}{% if e.decision %} → {{ e.decision }}{% endif %}</span></div>
+<div class="small">Intervention: {{ e.intervention }} · metric: {{ e.metric }} · {{ e.start_day }} + {{ e.days }} d</div>
+{% if e.status == "running" %}<div class="small">{% if today.isoformat() in e.treatment_days %}<b>Today is a TREATMENT day</b> — apply the intervention.{% else %}<b>Today is a CONTROL day</b> — do it the usual way.{% endif %}</div>{% endif %}
+{% if e.result %}<div class="small">{% if e.result.insight %}{{ e.result.insight.statement }} {{ insight(e.result.insight) }}{% else %}{{ e.result.message }}{% endif %}</div>{% endif %}
+{% if e.status == "running" %}<form class="inline" method="post" action="/experiments/{{ e.id }}/evaluate"><button>Evaluate now</button></form>
+<form class="inline" method="post" action="/experiments/{{ e.id }}/stop"><button class="link">stop</button></form>{% endif %}</div>
+{% else %}<p class="muted">No experiments yet.</p>{% endfor %}
+{% if suggestions %}<h2>Suggested by the Learning agent</h2>{% for s in suggestions %}<form class="card" method="post" action="/experiments">
+<b>{{ s.hypothesis }}</b><input type="hidden" name="hypothesis" value="{{ s.hypothesis }}"><input type="hidden" name="intervention" value="{{ s.intervention }}">
+<input type="hidden" name="metric" value="{{ s.metric }}"><input type="hidden" name="days" value="{{ s.days }}"><button>Start {{ s.days }}-day test</button></form>{% endfor %}{% endif %}
+<h2>New experiment</h2><form class="card form" method="post" action="/experiments">
+<div class="full"><label>Hypothesis</label><input name="hypothesis" required placeholder="Morning German speaking improves retention"></div>
+<div class="full"><label>Intervention (what you do on treatment days)</label><input name="intervention" required placeholder="German speaking before 10:00"></div>
+<div><label>Metric</label><select name="metric">{% for k, v in metrics.items() %}<option value="{{ k }}">{{ k }} — {{ v[0] }}</option>{% endfor %}</select></div>
+<div><label>Days</label><input name="days" value="14" inputmode="numeric"></div>
+<div class="full"><button class="primary">Start</button></div></form>
+{% endblock %}

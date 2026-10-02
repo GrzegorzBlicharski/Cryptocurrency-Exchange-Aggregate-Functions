@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark"><title>{% block title %}APEX OS{% endblock %}</title>
+<link rel="icon" href="data:,"><link rel="stylesheet" href="/static/app.css"><script src="/static/app.js" defer></script></head>
+<body>
+{% set p = request.url.path %}
+<header><div class="bar"><a class="brand" href="/">APEX</a>
+{% if not bare %}<nav>
+<a href="/" class="{{ 'on' if p == '/' }}">Home</a>
+<a href="/brief" class="{{ 'on' if p == '/brief' }}">Brief</a>
+<a href="/plan" class="{{ 'on' if p == '/plan' }}">Plan</a>
+<a href="/log" class="{{ 'on' if p.startswith('/log') }}">Log</a>
+<a href="/inbox" class="{{ 'on' if p == '/inbox' }}">Inbox{% if inbox_unread %}<span class="badge">{{ inbox_unread }}</span>{% endif %}</a>
+<a href="/actions" class="{{ 'on' if p == '/actions' }}">Approvals{% if approvals %}<span class="badge">{{ approvals }}</span>{% endif %}</a>
+<a href="/review" class="{{ 'on' if p.startswith('/review') }}">Review</a>
+<a href="/german" class="{{ 'on' if p == '/german' }}">German</a>
+<a href="/law" class="{{ 'on' if p == '/law' }}">Law</a>
+<a href="/career" class="{{ 'on' if p == '/career' }}">Career</a>
+<a href="/goals" class="{{ 'on' if p == '/goals' }}">Goals</a>
+<a href="/experiments" class="{{ 'on' if p == '/experiments' }}">Experiments</a>
+<a href="/radar" class="{{ 'on' if p == '/radar' }}">Radar</a>
+<a href="/memory" class="{{ 'on' if p == '/memory' }}">Memory</a>
+<a href="/settings" class="{{ 'on' if p == '/settings' }}">Settings</a>
+</nav>{% endif %}</div></header>
+<main>{% block content %}{% endblock %}</main>
+</body></html>

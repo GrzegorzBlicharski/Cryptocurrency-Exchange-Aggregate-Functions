@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}<h1>Goals & skills</h1>
+<p class="small muted">Goal weights (1-5) drive strategic alignment in the Priority Engine and the APEX score.</p>
+<div class="card tablewrap"><table><tr><th>Goal</th><th>Domain</th><th>Weight</th><th>Deadline</th><th>Status</th></tr>
+{% for g in goals %}<tr><td><b>{{ g.title }}</b><div class="small muted">{{ g.why }}</div></td><td>{{ g.domain }}</td><td>{{ g.weight }}</td><td>{{ g.deadline or "—" }}</td>
+<td><form method="post" action="/goals/{{ g.id }}" class="row"><select name="status">{% for s in ["active", "paused", "done", "dropped", "delete"] %}<option {{ 'selected' if g.status == s }}>{{ s }}</option>{% endfor %}</select><button>Save</button></form></td></tr>
+{% else %}<tr><td colspan="5" class="muted">No goals yet — APEX treats all domains equally until you add some.</td></tr>{% endfor %}</table></div>
+<form class="card form" method="post" action="/goals"><div class="full"><label>New goal</label><input name="title" required></div>
+<div><label>Domain</label><select name="domain">{% for d in domains %}<option>{{ d }}</option>{% endfor %}</select></div>
+<div><label>Weight 1-5</label><input name="weight" value="3" inputmode="numeric"></div>
+<div><label>Deadline</label><input type="date" name="deadline"></div>
+<div class="full"><label>Why it matters</label><input name="why"></div><div class="full"><button class="primary">Add goal</button></div></form>
+<h2>Skills (used for career matching)</h2>
+<div class="card tablewrap"><table><tr><th>Skill</th><th>Level 0-5</th><th>Evidence</th><th></th></tr>
+{% for s in skills %}<tr><td>{{ s.name }}</td><td>{{ s.level }}</td><td class="small">{{ s.evidence }}</td><td><form class="inline" method="post" action="/skills/{{ s.id }}/delete"><button class="link danger">delete</button></form></td></tr>{% endfor %}</table></div>
+<form class="card form" method="post" action="/skills"><div><label>Skill</label><input name="name" required></div>
+<div><label>Level 0-5</label><input name="level" value="3" inputmode="numeric"></div><div class="full"><label>Evidence (certificate, project…)</label><input name="evidence"></div>
+<div class="full"><button class="primary">Save skill</button></div></form>
+{% endblock %}

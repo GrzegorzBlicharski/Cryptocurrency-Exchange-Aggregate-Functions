@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}<h1>Memory & Digital Twin</h1>
+<h2>Personal Digital Twin (observable data only)</h2><div class="grid">
+{% for q, recs in twin.items() %}<div class="card"><div class="muted small">{{ q }}</div>
+{% for r in recs[:3] %}<div class="small">{{ r.content }} <span class="chip {{ r.epistemic }}">{{ r.epistemic }}</span> <span class="chip">{{ "%.0f"|format(r.confidence * 100) }}%</span></div>{% else %}<div class="small muted">unknown yet</div>{% endfor %}</div>{% endfor %}</div>
+{% if due %}<h2>Due for review ({{ due | length }})</h2><p class="small muted">These may be outdated. Confirm, correct or delete.</p>{% endif %}
+<h2>Records</h2>
+<div class="tabs"><a href="/memory" class="{{ 'on' if not layer }}">all</a>{% for l in layers %}<a href="/memory?layer={{ l }}" class="{{ 'on' if l == layer }}">{{ l }}</a>{% endfor %}</div>
+<div class="card tablewrap"><table><tr><th>Memory</th><th>Meta</th><th>Correct / delete</th></tr>
+{% for r in records %}<tr><td>{{ r.content }}<div class="small muted">{{ r.layer }} · {{ r.category }}{% if r in due %} · <b>review due</b>{% endif %}</div></td>
+<td class="small muted">{{ r.created_at.strftime("%Y-%m-%d") }} · {{ r.source }} · conf {{ "%.0f"|format(r.confidence * 100) }}% · {{ r.epistemic }}{% if r.review_at %} · review {{ r.review_at }}{% endif %}</td>
+<td><form method="post" action="/memory/{{ r.id }}/correct" class="row"><input name="content" placeholder="corrected text"><button>Correct</button></form>
+<form class="inline" method="post" action="/memory/{{ r.id }}/reviewed"><button class="link">still true</button></form>
+<form class="inline" method="post" action="/memory/{{ r.id }}/forget" data-confirm="Permanently delete this memory and its history?"><button class="link danger">delete</button></form></td></tr>
+{% else %}<tr><td colspan="3" class="muted">Empty.</td></tr>{% endfor %}</table></div>
+<h2>Tell APEX a fact</h2><form class="card form" method="post" action="/memory">
+<div><label>Layer</label><select name="layer">{% for l in layers %}<option {{ 'selected' if l == 'long_term' }}>{{ l }}</option>{% endfor %}</select></div>
+<div><label>Category</label><input name="category" required placeholder="constraint, preference, WHEN I WORK BEST…"></div>
+<div class="full"><label>Content</label><input name="content" required></div><div class="full"><button class="primary">Remember</button></div></form>
+{% endblock %}

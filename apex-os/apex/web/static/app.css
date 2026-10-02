@@ -1,0 +1,51 @@
+:root{--bg:#f6f7f9;--card:#fff;--fg:#14171c;--muted:#5d6673;--line:#e2e5ea;--acc:#2f5bd3;--ok:#1d8a4e;--warn:#b7791f;--bad:#c53030;--chip:#eef1f6}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#171a21;--fg:#e8ebf0;--muted:#98a2b3;--line:#2a2f3a;--acc:#7aa2ff;--ok:#4cc38a;--warn:#e0a640;--bad:#f07070;--chip:#222734}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--fg)}
+a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+header .bar{max-width:1100px;margin:0 auto;padding:8px 16px;display:flex;gap:14px;align-items:center;overflow-x:auto;white-space:nowrap}
+header .brand{font-weight:800;letter-spacing:.06em}
+header nav a{color:var(--muted);font-size:14px}header nav a.on{color:var(--fg);font-weight:600}
+header nav{display:flex;gap:12px}
+main{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 12px}h2{font-size:17px;margin:18px 0 8px}h3{font-size:15px;margin:0 0 6px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card.hero{border-color:var(--acc)}
+.muted{color:var(--muted)}.small{font-size:13px}
+.score{font-size:30px;font-weight:800;line-height:1}
+.score small{font-size:13px;font-weight:500;color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}
+.chip{display:inline-block;padding:1px 8px;border-radius:99px;background:var(--chip);font-size:12px;color:var(--muted)}
+.chip.OBSERVATION{color:var(--acc)}.chip.CORRELATION{color:var(--warn)}.chip.HYPOTHESIS{color:var(--warn)}.chip.TESTED_EFFECT{color:var(--ok)}
+.st-STRONG{color:var(--ok)}.st-DEVELOPING{color:var(--acc)}.st-WEAK{color:var(--warn)}.st-CRITICAL{color:var(--bad)}
+.band-SUSTAINABLE{color:var(--ok)}.band-STRAINED{color:var(--warn)}.band-OVERLOADED,.band-CRITICAL{color:var(--bad)}
+.up{color:var(--ok)}.down{color:var(--bad)}
+ol.nba,ul.plain{padding-left:20px;margin:6px 0}ol.nba li{margin:8px 0}
+details{margin-top:6px}summary{cursor:pointer;color:var(--acc);font-size:13px}
+details .why{font-size:13px;border-left:3px solid var(--line);padding:4px 10px;margin-top:6px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.tablewrap{overflow-x:auto}
+form.inline{display:inline}
+input,select,textarea,button{font:inherit;color:inherit}
+input,select,textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+input[type=checkbox]{width:auto}
+textarea{min-height:70px}
+label{display:block;font-size:13px;color:var(--muted);margin:8px 0 3px}
+.form{display:grid;gap:4px 12px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.form .full{grid-column:1/-1}
+button,.btn{display:inline-block;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:14px}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+button.danger{color:var(--bad)}
+button.link{border:none;background:none;color:var(--acc);padding:0 4px}
+.alert{border-left:4px solid var(--warn)}.alert.p5{border-left-color:var(--bad)}
+.flash{padding:10px;border-radius:8px;background:var(--chip);margin-bottom:12px}
+.error{color:var(--bad)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tabs a{padding:4px 10px;border-radius:99px;background:var(--chip);font-size:13px}.tabs a.on{background:var(--acc);color:#fff}
+meter{width:100%;height:8px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13px}
+.badge{background:var(--bad);color:#fff;border-radius:99px;padding:0 6px;font-size:11px;margin-left:2px}
+.center{max-width:380px;margin:60px auto}
+a.card{color:inherit;display:block}a.card:hover{text-decoration:none;border-color:var(--acc)}

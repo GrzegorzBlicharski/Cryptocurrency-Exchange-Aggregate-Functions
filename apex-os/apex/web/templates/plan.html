@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}<h1>Today's plan · {{ today }}</h1>
+<p class="small muted">Plan vs. actual feeds the Execution agent. Be honest — a skipped item with a reason is more useful than a fake "done".</p>
+<div class="card tablewrap"><table><tr><th>Item</th><th>Planned</th><th>Update</th></tr>
+{% for i in items %}<tr><td><b>{{ i.title }}</b><div class="small muted">{{ i.domain }} · {{ i.status }}</div></td><td>{{ i.planned_min }} min</td>
+<td><form method="post" action="/plan/{{ i.id }}" class="row">
+<select name="status">{% for s in ["planned", "done", "partial", "skipped"] %}<option {{ 'selected' if i.status == s }}>{{ s }}</option>{% endfor %}</select>
+<input name="actual_min" placeholder="actual min" value="{{ i.actual_min or '' }}" inputmode="numeric">
+<input name="quality" placeholder="quality 1-5" value="{{ i.quality or '' }}" inputmode="numeric">
+<input name="fail_reason" placeholder="if not done: why?" value="{{ i.fail_reason }}">
+<button>Save</button></form></td></tr>
+{% else %}<tr><td colspan="3" class="muted">Empty. Add items from <a href="/">Next best actions</a> or below.</td></tr>{% endfor %}</table></div>
+<h2>Add item</h2><form class="card form" method="post" action="/plan">
+<div class="full"><label>Title</label><input name="title" required></div>
+<div><label>Domain</label><select name="domain">{% for d in domains %}<option>{{ d }}</option>{% endfor %}</select></div>
+<div><label>Minutes</label><input name="minutes" value="30" inputmode="numeric"></div>
+<div class="full"><button class="primary">Add</button></div></form>
+{% endblock %}

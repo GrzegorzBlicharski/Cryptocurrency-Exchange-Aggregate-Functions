@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}<h1>Log</h1>
+<div class="tabs">{% for k, v in specs.items() %}<a href="/log?kind={{ k }}" class="{{ 'on' if k == kind }}">{{ v.label }}</a>{% endfor %}</div>
+{% if saved %}<div class="flash">Saved. APEX will re-plan on your next visit.</div>{% endif %}
+{% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+{% set vals = values or {} %}
+<form class="card form" method="post" action="/log/{{ kind }}">
+{% for f in specs[kind].fields %}<div class="{{ 'full' if f.type == 'text' }}"><label>{{ f.title }}{% if f.required %} *{% endif %}</label>
+{% set v = vals.get(f.name, today.isoformat() if f.type == 'date' else (f.default if f.default is not none else '')) %}
+{% if f.type == "select" %}<select name="{{ f.name }}">{% if not f.required %}<option value=""></option>{% endif %}{% for o in f.options %}<option {{ 'selected' if o == v }}>{{ o }}</option>{% endfor %}</select>
+{% elif f.type == "text" %}<textarea name="{{ f.name }}">{{ v }}</textarea>
+{% elif f.type == "bool" %}<input type="hidden" name="{{ f.name }}" value=""><input type="checkbox" name="{{ f.name }}" {{ 'checked' if v in (True, 'on') }}>
+{% elif f.type == "date" %}<input type="date" name="{{ f.name }}" value="{{ v }}" {{ 'required' if f.required }}>
+{% elif f.type == "time" %}<input type="time" name="{{ f.name }}" value="{{ v }}">
+{% else %}<input name="{{ f.name }}" value="{{ v }}" {{ 'required' if f.required }} {% if f.type in ('int', 'float') %}inputmode="decimal"{% endif %}>{% endif %}
+</div>{% endfor %}
+<div class="full"><button class="primary">Save</button></div></form>
+<p class="small muted">Free-text notes are encrypted at rest. Bulk data from apps: <a href="/settings">CSV import</a>.</p>
+{% endblock %}

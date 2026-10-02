@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}<h1>APEX Morning Brief · {{ brief.day }}</h1>
+{% macro item(x) %}{% if x %}<b>{{ x.title }}</b> <span class="muted small">({{ x.minutes }} min{% if x.note %}, {{ x.note }}{% endif %})</span><div class="small muted">{{ x.detail }}</div>{% else %}<span class="muted">—</span>{% endif %}{% endmacro %}
+<div class="card hero"><div class="muted small">TODAY'S #1 PRIORITY</div>{{ item(brief.priority) }}</div>
+<div class="grid">
+<div class="card"><div class="muted small">TOP 3 ACTIONS</div><ol class="nba">{% for a in brief.top3 %}<li>{{ item(a) }}</li>{% endfor %}</ol></div>
+<div class="card"><div class="muted small">LEARNING TARGET</div>{{ item(brief.learning_target) }}</div>
+<div class="card"><div class="muted small">MOVEMENT / RECOVERY</div>{{ item(brief.movement_recovery) }}</div>
+<div class="card"><div class="muted small">IMPORTANT DEADLINE</div>{% if brief.deadline %}<b>{{ brief.deadline.deadline }}</b> · {{ brief.deadline.title }}{% else %}<span class="muted">—</span>{% endif %}</div>
+<div class="card"><div class="muted small">CAREER OPPORTUNITY</div>{% if brief.career %}<b>{{ brief.career.title }}</b> ({{ "%.0f"|format(brief.career.match * 100) }}% match)<div class="small muted">{{ brief.career.action }}</div>{% else %}<span class="muted">—</span>{% endif %}</div>
+<div class="card alert"><div class="muted small">ONE THING TO AVOID</div>{{ brief.avoid }}</div>
+</div>
+<p class="small muted">Sustainability {{ brief.sustainability.band }} ({{ brief.sustainability.index }}) · capacity {{ brief.sustainability.capacity_min }} min focus.</p>
+{% endblock %}

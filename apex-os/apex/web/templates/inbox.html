@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% from "_macros.html" import insight %}
+{% block content %}<h1>APEX Inbox</h1>
+<div class="tabs"><a href="/inbox" class="{{ 'on' if show == 'open' }}">Open</a><a href="/inbox?show=all" class="{{ 'on' if show == 'all' }}">All</a></div>
+<p class="small muted">Prioritized. Only items marked <span class="chip">interrupt</span> spent the daily notification budget; everything else is a digest.</p>
+{% for i in items %}<div class="card {{ 'alert' if i.priority >= 70 }}">
+<div class="row between"><div class="row"><span class="chip">{{ i.kind }}</span>{% if i.interrupt %}<span class="chip">interrupt</span>{% endif %}<span class="chip">{{ i.agent }}</span>{% if i.deadline %}<span class="chip">due {{ i.deadline }}</span>{% endif %}</div><span class="small muted">{{ i.status }} · p{{ "%.0f"|format(i.priority) }}</span></div>
+<h3>{{ i.title }}</h3><div class="small">{{ i.so_what }}</div>
+{% if i.why %}<details><summary>WHY?</summary><div class="why">{% if i.why.insight %}<div>{{ i.why.insight.statement }}</div>{{ insight(i.why.insight) }}
+<div>Data: {{ (i.why.insight.data_used or []) | join(", ") }}</div>{% endif %}<div class="muted">Triage: {{ i.why.disposition }} · {{ i.why.budget }}</div></div></details>{% endif %}
+<div class="row small">{% if i.action_id %}<a href="/actions">Open prepared action →</a>{% endif %}
+{% for s in ["read", "done", "dismissed"] %}<form class="inline" method="post" action="/inbox/{{ i.id }}/{{ s }}"><button class="link">{{ s }}</button></form>{% endfor %}</div>
+</div>{% else %}<p class="muted">Inbox zero.</p>{% endfor %}
+{% endblock %}
