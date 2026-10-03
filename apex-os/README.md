@@ -13,8 +13,8 @@ habit tracker with AI features added on.
 > Maximize verified long-term progress, healthy functioning, capability and life quality
 > **per sustainable hour of effort.** Hours, streaks and task counts are not the goal.
 
-Architecture, agents, schema, memory, autonomy/security model and roadmap are in
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Prototype (v0.3) architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Target system: **[APEX OS Technical Specification v1.0](docs/spec/00-index.md)**, which includes the Agent Factory and is pending approval.
 
 ## Quick start
 

@@ -1,3 +1,6 @@
+> **Note:** this document describes the v0.3 prototype. The target architecture is
+> [APEX OS Technical Specification v1.0](spec/00-index.md) (pending approval).
+
 # APEX OS — Architecture
 
 > Objective function: **maximize verified long-term progress, healthy functioning,
