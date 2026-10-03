@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install -q -e apex-os)",
+      "Bash(pip install -q -e .)",
+      "Bash(pip install -e .)",
+      "Bash(mkdir -p /tmp/apex-cycle)",
+      "Bash(python -m apex bridge:*)",
+      "Bash(python3 -m apex bridge:*)",
+      "Bash(python ops/routines/cycle.py:*)",
+      "Bash(python3 ops/routines/cycle.py:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

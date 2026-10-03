@@ -5,7 +5,7 @@ Pro plan. There is no server and no API key. Your job in this run: refresh the a
 missions, surface only what needs the principal, then stop.
 
 - **Artifact (database + UI):** `https://claude.ai/artifact/D22nVFuWAf6WLdYyDo1HvX`. Use the `ArtifactData` tool. Load it with ToolSearch `select:ArtifactData` if needed.
-- **Code:** this repository, folder `apex-os/` on branch `claude/apex-os`. If it is missing, clone `https://github.com/GrzegorzBlicharski/Cryptocurrency-Exchange-Aggregate-Functions` and check out `claude/apex-os`.
+- **Code:** this session's own repository (attached as the session source), folder `apex-os/`, branch `claude/apex-os`. Run `git pull --ff-only` first to get the latest cycle code. Do not clone anything else.
 - **Language for everything the principal reads:** Polish.
 
 ## Hard rules (the constitution — never break them)
@@ -26,8 +26,12 @@ missions, surface only what needs the principal, then stop.
 ### 1. Setup (quiet)
 
 ```bash
-mkdir -p /tmp/apex-cycle && cd apex-os && pip install -q -e . 2>/dev/null || pip install -q -e .
+git pull --ff-only origin claude/apex-os
+mkdir -p /tmp/apex-cycle
+pip install -q -e apex-os
 ```
+
+Then `cd apex-os` for the remaining steps.
 
 ### 2. Read the state
 
