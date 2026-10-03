@@ -8,11 +8,11 @@
       "Bash(python -m apex bridge:*)",
       "Bash(python3 -m apex bridge:*)",
       "Bash(python ops/routines/cycle.py:*)",
-      "Bash(python3 ops/routines/cycle.py:*)"
-    ],
-    "deny": [
-      "Bash(git push:*)",
-      "Bash(git commit:*)"
+      "Bash(python3 ops/routines/cycle.py:*)",
+      "Bash(git pull --ff-only origin claude/apex-os)",
+      "ArtifactData",
+      "WebSearch",
+      "WebFetch"
     ]
   }
 }

@@ -31,7 +31,9 @@ mkdir -p /tmp/apex-cycle
 pip install -q -e apex-os
 ```
 
-Then `cd apex-os` for the remaining steps.
+Run each command **on its own, exactly as written**: no `&&`, pipes, `cd …&&` prefixes, `2>&1` or `echo`.
+Pre-approved permission rules match only the exact command; a combined command needs an approval nobody is
+there to give, and the cycle stops. Then `cd apex-os` for the remaining steps (as its own command).
 
 ### 2. Read the state
 
@@ -54,7 +56,7 @@ python -m apex bridge --in /tmp/apex-cycle/state.json --out /tmp/apex-cycle/proj
 python ops/routines/cycle.py writes /tmp/apex-cycle/dump /tmp/apex-cycle/projection.json /tmp/apex-cycle/writes
 ```
 
-Apply every batch in `/tmp/apex-cycle/writes/writes.json` with one `ArtifactData` `batch` call each. All
+Again, run the three commands separately, as written. Apply every batch in `/tmp/apex-cycle/writes/writes.json` with one `ArtifactData` `batch` call each. All
 are create-only; no `if_version` is needed. Never edit the numbers in the projection: they come from
 deterministic code.
 
