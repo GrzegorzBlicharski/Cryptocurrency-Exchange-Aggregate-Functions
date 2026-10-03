@@ -1,6 +1,6 @@
 [project]
 name = "apex-os"
-version = "0.2.0"
+version = "0.3.0"
 description = "APEX OS - Personal Operating Agent"
 requires-python = ">=3.11"
 dependencies = [
@@ -14,6 +14,7 @@ dependencies = [
   "cryptography>=42",
   "httpx>=0.27",
   "alembic>=1.13",
+  "anthropic>=1.11",
 ]
 
 [project.optional-dependencies]

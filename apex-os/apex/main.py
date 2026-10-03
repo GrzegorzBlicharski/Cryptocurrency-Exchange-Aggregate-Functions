@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import api, db, scheduler, web, web_integrations
+from . import api, db, scheduler, web, web_integrations, web_missions
 from .config import Settings, get_settings
 from .models import User
 from .security import NotAuthenticated
@@ -31,6 +31,7 @@ def create_app(settings: Settings | None = None, start_scheduler: bool | None = 
     app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "web" / "static")), name="static")
     app.include_router(api.router)
     app.include_router(web_integrations.router)
+    app.include_router(web_missions.router)
     app.include_router(web.router)
 
     @app.get("/sw.js", include_in_schema=False)

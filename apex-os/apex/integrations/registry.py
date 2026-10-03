@@ -24,8 +24,9 @@ class Integration:
             return "not built (see docs)"
         ok = {
             "csv_import": True, "apple_health": True, "mcp": True,
-            "openai_responses": bool(settings.openai_api_key),
-            "openai_web_search": bool(settings.openai_api_key),
+            "claude": bool(settings.anthropic_api_key),
+            "claude_web": bool(settings.anthropic_api_key),
+            "missions": bool(settings.anthropic_api_key) and settings.missions_enabled,
             "google_calendar": bool(settings.ics_url),
             "calendar_feed": len(settings.calendar_feed_token) >= 24,
             "gmail": bool(settings.imap_host and settings.imap_user and settings.imap_password),
@@ -36,7 +37,7 @@ class Integration:
             ok = bool(cfg.get("feeds") or cfg.get("arbeitnow"))
         if self.key == "radar_feeds" and db is not None:
             cfg = store.get(db, "radar")
-            ok = bool(cfg.get("feeds") or (cfg.get("web_queries") and settings.openai_api_key))
+            ok = bool(cfg.get("feeds") or (cfg.get("web_queries") and settings.anthropic_api_key))
         if not ok:
             return "not configured"
         if self.store_key and db is not None:
@@ -51,10 +52,12 @@ INTEGRATIONS = [
                 ("sleep", "movement", "screen_time", "energy", "workouts", "deep_work"), "built-in"),
     Integration("apple_health", "Apple Health import", "export.xml → steps, sleep, resting HR, HRV",
                 ("movement", "sleep", "recovery"), "built-in (upload below)"),
-    Integration("openai_responses", "OpenAI Responses API", "Drafts (CV, LinkedIn), requirement extraction",
-                ("career_opportunities", "skills", "linkedin_profile"), "env OPENAI_API_KEY"),
-    Integration("openai_web_search", "OpenAI Web Search", "Radar research with citations (source + date stored)",
-                ("research_items",), "env OPENAI_API_KEY + radar web queries"),
+    Integration("claude", "Claude (Anthropic API)", "Drafts (CV, LinkedIn), requirement extraction",
+                ("career_opportunities", "skills", "linkedin_profile"), "env ANTHROPIC_API_KEY"),
+    Integration("claude_web", "Claude web search + fetch", "Agents browse the web; only URLs actually read are saved",
+                ("research_items", "career_opportunities"), "env ANTHROPIC_API_KEY"),
+    Integration("missions", "Autonomous missions", "Goal-driven Claude agents that plan, browse and act within gates",
+                ("all (via scoped tools)",), "env ANTHROPIC_API_KEY + Missions page"),
     Integration("job_sources", "Job sources", "RSS/Atom feeds + Arbeitnow API → Career agent",
                 ("career_opportunities",), "settings below", "job_sources"),
     Integration("radar_feeds", "Radar feeds", "RSS/Atom + web queries → Radar (EV-gated)",

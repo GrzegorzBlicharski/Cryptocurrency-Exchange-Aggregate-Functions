@@ -69,6 +69,14 @@ def tick(now: datetime | None = None) -> list[str]:
             with session_scope() as db:
                 if not db.query(JobRun).filter_by(job=job, period=period).first():
                     db.add(JobRun(job=job, period=period, status="error", detail=str(exc)[:500]))
+    # Autonomous missions: each due mission runs in its own transaction; failures never stop the loop.
+    try:
+        from .missions import runner as mission_runner
+
+        if mission_runner.tick():
+            ran.append("missions")
+    except Exception:  # pragma: no cover
+        log.exception("mission tick failed")
     # Push delivery is not period-bound: anything interrupt-worthy and undelivered goes out now.
     try:
         with session_scope() as db:

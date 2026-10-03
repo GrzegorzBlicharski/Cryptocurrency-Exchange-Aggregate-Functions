@@ -23,6 +23,10 @@
 <h3>{{ a.title }}</h3><div class="small">{{ a.so_what }}</div>{% if a.action_id %}<a class="small" href="/actions">Prepared action awaiting you →</a>{% endif %}</div>
 {% endfor %}</div>{% endif %}
 
+{% if missions %}<h2>Agents at work</h2><div class="grid">{% for m in missions %}<a class="card {{ 'alert' if m.status == 'needs_user' }}" href="/missions/{{ m.id }}">
+<div class="row between"><b>{{ m.title }}</b><span class="chip">{{ m.status }}</span></div>
+<meter min="0" max="100" value="{{ m.progress_pct }}"></meter><div class="small muted">{{ m.progress_pct }}% · {{ (m.progress_summary or "starting")[:110] }}</div></a>{% endfor %}</div>{% endif %}
+
 <h2>Next best actions · what is the highest-value next step?</h2>
 <div class="card"><ol class="nba">{% for a in plan.admitted %}{% set r = recs.get(a.action.key) %}
 <li><div class="row between"><b>{{ a.action.title }}</b><span class="chip">{{ a.action.domain }} · {{ a.action.minutes }} min · {{ a.score }}</span></div>

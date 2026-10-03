@@ -15,6 +15,8 @@
 - New log kinds: add a spec in `logbook.SPECS`. Forms, the API and CSV import follow from it.
 - Every UI element must answer "so what?"; prefer one sentence of meaning over another chart.
 - Outbound HTTP only through `integrations/http.py` (tests use `http.set_transport(httpx.MockTransport(...))`).
-- LLM calls only through `integrations/llm.py`. Always provide a deterministic fallback and catch `LLMUnavailable`.
+- Claude calls only through `integrations/claude.py` (agent loop) or `integrations/llm.py` (single-shot). Always provide a deterministic fallback.
+- Mission tools live in `missions/tools.py`; a tool that writes must be an observation or go through `autonomy.propose()`. Add a tool to a role in `missions/roles.py` only if that role needs it.
+- Tests use `tests/fake_claude.py` (`claude.set_client(FakeClaude(...))`); never call the real API in tests.
 - Schema change: edit `models.py`, then add a migration in `apex/migrations/versions/` (batch mode for SQLite).
 - A new agent must run in isolation: never assume another report exists. Use `reports.get(...)` or `.metrics.get(...)`.

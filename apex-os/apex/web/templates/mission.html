@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="small"><a href="/missions">← Missions</a></p>
+<h1>{{ m.title }} <span class="chip">{{ m.status }}</span></h1>
+<div class="card hero"><div class="small muted">{{ role.label }} · priority {{ m.priority }} · every {{ m.cadence_hours }} h · {{ m.runs }} runs · {{ "{:,}".format(m.tokens_used) }} tokens{% if m.created_by != 'user' %} · created by {{ m.created_by }}{% endif %}</div>
+<div><b>Objective:</b> {{ m.objective }}</div>
+<div class="small"><b>Success criteria:</b> {{ m.success_criteria | join(" · ") }}</div>
+<meter min="0" max="100" value="{{ m.progress_pct }}"></meter><div class="small">{{ m.progress_pct }}% — {{ m.progress_summary or "no progress recorded yet" }}</div>
+<div class="row">{% if m.status == 'active' %}<form class="inline" method="post" action="/missions/{{ m.id }}/run"><button class="primary">Run now</button></form>
+<form class="inline" method="post" action="/missions/{{ m.id }}/paused"><button>Pause</button></form>{% elif m.status in ('paused', 'stopped', 'achieved', 'failed') %}<form class="inline" method="post" action="/missions/{{ m.id }}/active"><button class="primary">Resume</button></form>{% endif %}
+{% if m.status != 'stopped' %}<form class="inline" method="post" action="/missions/{{ m.id }}/stopped" data-confirm="Stop this mission?"><button class="danger">Stop</button></form>{% endif %}</div></div>
+{% if m.status == 'needs_user' or m.blocked_reason %}<form class="card alert" method="post" action="/missions/{{ m.id }}/answer"><b>The agent asks:</b> {{ m.blocked_reason }}
+<label>Your answer (stored in the mission's memory; the mission resumes)</label><textarea name="answer" required></textarea><p><button class="primary">Answer</button></p></form>
+{% else %}<form class="card" method="post" action="/missions/{{ m.id }}/answer"><label>Tell this agent something (preference, constraint, correction)</label><div class="row"><input name="answer"><button>Send</button></div></form>{% endif %}
+<div class="grid">
+<div class="card"><div class="muted small">AGENT'S PLAN (it maintains this itself)</div><ul class="plain small">{% for s in m.plan %}<li><span class="chip">{{ s.status }}</span> {{ s.title }}{% if s.notes %} <span class="muted">— {{ s.notes }}</span>{% endif %}</li>{% else %}<li class="muted">No plan yet — created on the first run.</li>{% endfor %}</ul></div>
+<div class="card"><div class="muted small">MEMORY</div><ul class="plain small">{% for x in mem %}<li>{{ x.content }} <span class="muted">({{ x.source }})</span></li>{% else %}<li class="muted">—</li>{% endfor %}</ul></div>
+{% if children %}<div class="card"><div class="muted small">SUB-MISSIONS</div>{% for c in children %}<div class="small"><a href="/missions/{{ c.id }}">{{ c.title }}</a> · {{ c.status }}</div>{% endfor %}</div>{% endif %}
+</div>
+<h2>Runs</h2>
+{% for r in runs %}<div class="card"><div class="row between"><b>{{ r.created_at.strftime("%Y-%m-%d %H:%M") }}</b><span class="chip">{{ r.status }} · {{ r.steps | length }} tool calls · {{ "{:,}".format(r.input_tokens + r.output_tokens) }} tok</span></div>
+<div class="small">{{ r.summary }}</div>
+{% if r.steps %}<details><summary>What the agent did ({{ r.steps | length }})</summary><ul class="plain small">{% for s in r.steps %}<li>{{ '✓' if s.ok else '✗' }} <b>{{ s.tool }}</b> <span class="muted">{{ s.input }}</span> → {{ s.result }}</li>{% endfor %}</ul></details>{% endif %}
+{% if r.sources %}<details><summary>Web pages seen ({{ r.sources | length }})</summary><ul class="plain small">{% for s in r.sources %}<li><a href="{{ s.url }}" rel="noopener noreferrer nofollow">{{ s.title or s.url }}</a></li>{% endfor %}</ul></details>{% endif %}
+</div>{% else %}<p class="muted">No runs yet.</p>{% endfor %}
+{% endblock %}

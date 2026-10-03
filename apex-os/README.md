@@ -1,5 +1,11 @@
 # APEX OS — Personal Operating Agent
 
+> **v0.3:** autonomous Claude agents. Set a goal, and APEX starts an agent that plans its own work,
+> researches the web, records leads and findings, puts concrete tasks into your plan, runs experiments
+> and schedules its own next run. A Chief of Staff agent coordinates the others. You supervise on
+> **/missions**: answer questions, approve the actions that stay yours (applying, messaging,
+> publishing, paying, legal and medical decisions), and pause anything with one click.
+
 A personal AI Chief of Staff. It is a closed loop: **observe → measure → analyze → detect →
 prioritize → recommend → act when authorized → measure → learn → adapt.** It is not a
 habit tracker with AI features added on.
@@ -18,7 +24,7 @@ pip install -e ".[dev]"          # Python 3.11+
 cp .env.example .env              # optional; defaults work
 python -m apex demo               # optional: synthetic demo data (source='demo')
 python -m apex serve              # http://127.0.0.1:8000 → first visit creates the owner account
-python -m pytest                  # 68 tests
+python -m pytest                  # 78 tests
 ```
 
 The app runs in the browser, so it works on a Chromebook and a phone. To reach it from your
@@ -40,7 +46,8 @@ Other commands: `python -m apex cycle` (plan now), `brief`, `tick` (run due sche
 | Inbox with triage and a notification budget; ntfy or webhook push for interrupts only | ✅ |
 | Autonomy levels 0–4, approvals, undo, runaway cap, idempotency, forbidden actions | ✅ |
 | Layered memory, digital twin, correct, delete and review-due | ✅ |
-| OpenAI Responses (drafts, extraction, cited web search). Optional; everything works without it | ✅ |
+| **Autonomous missions** (Claude `claude-opus-5-5`, web search and fetch, self-planning, Chief of Staff, budgets, kill switch, supervision UI) | ✅ |
+| Claude drafts and extraction (CV, LinkedIn, job requirements). Optional; everything else works without a key | ✅ |
 | Job sources (RSS/Atom, Arbeitnow), Radar feeds, calendar ICS in and plan feed out, IMAP read-only | ✅ |
 | MCP server (`python -m apex mcp`), Alembic migrations, PWA (installable on a phone), Docker | ✅ |
 | Security: scrypt auth, strict cookies, origin check, CSP, field encryption, audit, export, wipe, backup, prompt-injection quarantine, SSRF guard | ✅ |

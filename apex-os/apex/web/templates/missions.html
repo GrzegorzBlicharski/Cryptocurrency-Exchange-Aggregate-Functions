@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}<h1>Autonomous missions</h1>
+<p class="small muted">Every goal gets a Claude agent that plans its own work, researches the web, acts through APEX tools and schedules itself. A Chief of Staff agent coordinates them. You supervise: answer questions, approve user-only actions, pause anything.</p>
+{% if not key_ok %}<div class="flash error">ANTHROPIC_API_KEY is not set — missions are configured but cannot run.</div>{% endif %}
+<form class="card" method="post" action="/missions/settings"><div class="row between">
+<div class="row"><input type="hidden" name="enabled" value=""><label class="row"><input type="checkbox" name="enabled" {{ 'checked' if cfg.enabled }}> <b>Agents running</b> (kill switch)</label>
+<select name="autonomy"><option value="autonomous" {{ 'selected' if cfg.autonomy == 'autonomous' }}>Autonomous — agents execute safe, reversible actions themselves</option>
+<option value="supervised" {{ 'selected' if cfg.autonomy != 'autonomous' }}>Supervised — every agent action waits for approval</option></select>
+<input type="hidden" name="auto_from_goals" value=""><label class="row"><input type="checkbox" name="auto_from_goals" {{ 'checked' if cfg.auto_from_goals }}> auto-create a mission for every goal</label></div>
+<button class="primary">Save</button></div>
+<p class="small muted">Always your decision, in every mode: sending applications or messages, publishing, spending money, legal commitments, medical decisions, deleting data. Token use today: {{ "{:,}".format(tokens_today) }} / {{ "{:,}".format(settings.mission_daily_token_cap) }} · model {{ settings.claude_model }}</p></form>
+
+<div class="grid">{% for m in missions %}<a class="card {{ 'alert' if m.status == 'needs_user' }}" href="/missions/{{ m.id }}">
+<div class="row between"><b>{{ m.title }}</b><span class="chip">{{ m.status }}</span></div>
+<div class="small muted">{{ roles[m.role].label }} · priority {{ m.priority }} · every {{ m.cadence_hours }} h · {{ m.runs }} runs</div>
+<meter min="0" max="100" value="{{ m.progress_pct }}"></meter><div class="small">{{ m.progress_pct }}% — {{ m.progress_summary[:140] or "no progress recorded yet" }}</div>
+{% if m.status == 'needs_user' %}<div class="small error">Waiting for you: {{ m.blocked_reason }}</div>{% endif %}
+<div class="small muted">last {{ m.last_run_at.strftime("%m-%d %H:%M") if m.last_run_at else "—" }} · next {{ m.next_run_at.strftime("%m-%d %H:%M") if m.next_run_at and m.status == 'active' else "—" }}</div></a>
+{% else %}<p class="muted">No missions yet. Add a goal (a mission is created automatically) or create one below.</p>{% endfor %}</div>
+
+<h2>New mission</h2><form class="card form" method="post" action="/missions">
+<div><label>Title</label><input name="title" required></div>
+<div><label>Agent role</label><select name="role">{% for k, r in roles.items() if k != 'chief_of_staff' %}<option value="{{ k }}">{{ r.label }}</option>{% endfor %}</select></div>
+<div class="full"><label>Objective (what "done" looks like, constraints, preferences)</label><textarea name="objective" required></textarea></div>
+<div class="full"><label>Success criteria (one per line, measurable)</label><textarea name="criteria"></textarea></div>
+<div><label>Goal</label><select name="goal_id"><option value="">—</option>{% for g in goals %}<option value="{{ g.id }}">{{ g.title }}</option>{% endfor %}</select></div>
+<div><label>Priority 1-5</label><input name="priority" value="3" inputmode="numeric"></div>
+<div><label>Wake-up every (h, 0 = role default)</label><input name="cadence_hours" value="0" inputmode="numeric"></div>
+<div class="full"><button class="primary">Create & start</button></div></form>
+{% endblock %}

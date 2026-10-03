@@ -557,3 +557,45 @@ class MailItem(ObservationMixin, Base):
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
     injection_flags: Mapped[list] = mapped_column(default=list)
     handled: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+# ---------------------------------------------------------------- autonomous missions
+class Mission(TimestampMixin, Base):
+    """A goal-driven autonomous agent assignment. The agent owns its plan; the user supervises."""
+
+    __tablename__ = "missions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    goal_id: Mapped[int | None] = mapped_column(ForeignKey("goals.id", ondelete="SET NULL"), nullable=True)
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("missions.id", ondelete="SET NULL"), nullable=True)
+    title: Mapped[str] = mapped_column(String(200))
+    role: Mapped[str] = mapped_column(String(32))  # see missions/roles.py
+    objective: Mapped[str] = mapped_column(Text)
+    success_criteria: Mapped[list] = mapped_column(default=list)  # list[str]
+    status: Mapped[str] = mapped_column(String(16), default="active")
+    # active | paused | needs_user | achieved | failed | stopped
+    priority: Mapped[int] = mapped_column(Integer, default=3)  # 1..5
+    cadence_hours: Mapped[int] = mapped_column(Integer, default=24)
+    next_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    plan: Mapped[list] = mapped_column(default=list)  # [{"title","status","notes"}] - written by the agent
+    progress_pct: Mapped[int] = mapped_column(Integer, default=0)
+    progress_summary: Mapped[str] = mapped_column(Text, default="")
+    blocked_reason: Mapped[str] = mapped_column(String(500), default="")
+    runs: Mapped[int] = mapped_column(Integer, default=0)
+    tokens_used: Mapped[int] = mapped_column(Integer, default=0)
+    created_by: Mapped[str] = mapped_column(String(32), default="user")  # user | agent:<role> | auto:goal
+
+
+class MissionRun(TimestampMixin, Base):
+    __tablename__ = "mission_runs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    mission_id: Mapped[int] = mapped_column(ForeignKey("missions.id", ondelete="CASCADE"), index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(24), default="running")
+    # running | done | step_limit | budget | refused | error
+    steps: Mapped[list] = mapped_column(default=list)  # [{"tool","input","result","ok"}] summaries
+    sources: Mapped[list] = mapped_column(default=list)  # [{"url","title"}] seen via web tools
+    summary: Mapped[str] = mapped_column(Text, default="")
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    model: Mapped[str] = mapped_column(String(64), default="")

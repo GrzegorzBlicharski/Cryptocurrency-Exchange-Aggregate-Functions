@@ -36,10 +36,18 @@ class Settings(BaseSettings):
     cookie_secure: bool = False  # set true behind HTTPS
 
     # ---- integrations (secrets come from env only; absent = not configured) ----
-    openai_api_key: str = Field(default="", validation_alias="OPENAI_API_KEY")
-    openai_model: str = "gpt-4.1-mini"
-    openai_base_url: str = "https://api.openai.com/v1"
-    llm_daily_call_cap: int = 40  # cost / runaway guard
+    anthropic_api_key: str = Field(default="", validation_alias="ANTHROPIC_API_KEY")
+    claude_model: str = "claude-opus-5-5"
+    claude_effort: str = "high"  # autonomous missions; extraction uses "low"
+    llm_daily_call_cap: int = 60  # single-shot drafting/extraction calls per day
+
+    # ---- autonomous missions ----
+    missions_enabled: bool = True  # global kill switch (also toggleable in Settings)
+    mission_max_steps: int = 16  # model turns per mission run
+    mission_max_web_searches: int = 8  # per model turn (server tool max_uses)
+    mission_daily_token_cap: int = 2_000_000  # all missions, input+output tokens per day
+    mission_runs_per_tick: int = 2
+    max_active_missions: int = 12
 
     ics_url: str = ""  # private "secret address in iCal format" of your calendar
     calendar_feed_token: str = ""  # enables /calendar/<token>.ics (read-only plan feed)

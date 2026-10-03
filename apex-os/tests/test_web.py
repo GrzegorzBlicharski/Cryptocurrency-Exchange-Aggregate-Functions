@@ -70,3 +70,30 @@ def test_wipe_requires_confirmation(client, db):
     client.post("/settings/wipe", data={"confirm": "DELETE ALL MY DATA"})
     db.expire_all()
     assert db.query(Movement).count() == 0
+
+
+def test_missions_ui(client, db):
+    from apex.models import Goal, Mission
+    db.add(Goal(title="C1 German", domain="german", weight=5))
+    db.add(Goal(title="Law exam", domain="law", weight=4))
+    db.commit()
+    r = client.get("/missions")
+    assert r.status_code == 200 and "ANTHROPIC_API_KEY is not set" in r.text
+    db.expire_all()
+    ms = {m.role: m for m in db.query(Mission).all()}
+    assert set(ms) == {"german_coach", "law_tutor", "chief_of_staff"}
+    mid = ms["german_coach"].id
+    assert client.get(f"/missions/{mid}").status_code == 200
+    client.post(f"/missions/{mid}/paused")
+    db.expire_all()
+    assert db.get(Mission, mid).status == "paused"
+    client.post(f"/missions/{mid}/answer", data={"answer": "Focus on speaking"})
+    client.post("/missions/settings", data={"enabled": "", "autonomy": "supervised", "auto_from_goals": ""})
+    from apex.missions import manager
+    db.expire_all()
+    assert manager.settings(db)["autonomy"] == "supervised" and not manager.settings(db)["enabled"]
+    r = client.post("/missions", data={"title": "Find GDPR course", "role": "research_analyst",
+                                       "objective": "best course", "criteria": "1 course chosen"})
+    assert r.status_code == 200
+    assert client.post(f"/missions/{mid}/active").status_code == 200
+    assert client.post(f"/missions/{mid}/run").status_code == 400  # no API key

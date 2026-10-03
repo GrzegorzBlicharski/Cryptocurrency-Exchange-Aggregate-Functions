@@ -247,8 +247,8 @@ responses at 5 MB and retries a bounded number of times.
 
 | Integration | Module | Direction | Notes |
 |---|---|---|---|
-| OpenAI Responses API | `llm.py` | out | Drafts only (CV, LinkedIn) and requirement extraction. Strict JSON schemas, a daily call cap, an audit entry per call, and external text wrapped in `<external_data>`. `store=false`. |
-| OpenAI web search | `llm.web_research` | out | Radar research. Items without a matching citation URL are dropped. Source and date are stored. |
+| Claude (Anthropic API) | `claude.py`, `llm.py` | out | Official `anthropic` SDK, `claude-opus-5-5`, adaptive thinking, server-side refusal fallbacks, prompt caching. Drafts and extraction use guaranteed-JSON output, a daily call cap and an audit entry per call. |
+| Claude web search and fetch | `claude.web_tools` | out | Run on Anthropic's servers. Every URL returned is recorded as a seen source; agents can save only findings and leads whose URL they actually opened. |
 | Job sources | `jobs.py` | in | RSS/Atom feeds and the public Arbeitnow API. Keyword filter, dedupe by URL, a cap per sync. Requirements come from the LLM or a transparent heuristic. |
 | Radar feeds | `radar_sync.py` | in | RSS/Atom with heuristic scores (evidence 2/5 by default); the EV gate decides what is shown. |
 | Calendar | `calendar_ics.py` | in + feed | Private ICS URL. Busy time reduces focus capacity (meetings beyond 60 min). The plan is published as a read-only ICS feed protected by a token. No calendar writes. |
@@ -266,7 +266,37 @@ email plus calendar load). The Orchestrator isolates agent failures: a crashing 
 Schema changes go through Alembic (`apex/migrations`). `db.init()` creates a fresh database
 directly at head, stamps and upgrades a v0.1 database, and upgrades a versioned one.
 
-## 7. Phased roadmap
+## 7. Autonomous missions (v0.3)
+
+The user sets goals; agents do the work; the user supervises.
+
+```
+Goal ──auto──► Mission (role, objective, success criteria, priority, cadence)
+                 │  scheduler wakes it (next_run_at) ─► runner.run()
+                 ▼
+          Claude agent loop (claude.run_loop)
+          ├─ server tools: web_search, web_fetch (browse the internet)
+          ├─ APEX tools (scoped per role): status, domain detail, update_plan, record_progress,
+          │  remember/recall, save_finding, add_job_lead, add_plan_item, create_experiment,
+          │  propose_action, ask_user, schedule_next_run, complete_mission
+          └─ Chief of Staff only: list_missions, create_mission (one level deep), update_mission
+                 ▼
+          MissionRun log (every tool call, every web page seen, tokens) ─► Missions UI
+```
+
+| Mechanism | Why |
+|---|---|
+| The agent owns its plan, progress and next wake-up | It works toward its goal without being driven step by step |
+| The Chief of Staff mission re-prioritises, pauses and creates missions | Agents manage themselves as a team |
+| Autonomous mode (default) pre-authorises every **safe** action type (internal, reversible); supervised mode gates everything | The user chooses the trust level |
+| `FORBIDDEN_AUTO` (apply, message, publish, pay, legal, medical, delete) always goes to Approvals | The user's hard rule from the brief; no prompt or mode can lift it |
+| Provenance check: a finding or lead URL must appear in this run's web results | No hallucinated sources |
+| Sustainability guard: no work items on a CRITICAL or OVERLOADED day | Agents cannot push the user into overload |
+| Budgets: steps per run, global daily token cap, runs per tick, max active missions, a circuit breaker after 3 failed runs, a kill switch | Runaway protection and cost control |
+| `ask_user` (blocking or not) and answers stored in mission memory | The user steers by talking to the agent, not by editing it |
+| Web content is untrusted data (system prompt and tool design); agents cannot log in, enter credentials or act externally | Prompt-injection blast radius stays small |
+
+## 8. Phased roadmap
 
 | Phase | Scope | Status |
 |---|---|---|
@@ -276,6 +306,7 @@ directly at head, stamps and upgrades a v0.1 database, and upgrades a versioned 
 | 3 | LLM layer (Responses API, cited web research), job sources, LinkedIn advisor, Radar feeds | done |
 | 4 | calendar (ICS in, plan feed out), IMAP mail, Apple Health, push, more PREPARE actions | done |
 | 5 | MCP server, agent failure isolation, Alembic migrations, PostgreSQL extra, PWA, Docker | done |
+| 6 | Claude migration; autonomous goal-driven missions with web browsing, self-planning, Chief of Staff coordination, supervision UI | done |
 | next | encrypted off-site backups, more health sources, an experiment wizard for Learning-agent hypotheses | open |
 
 After each phase: **BUILD → TEST → VERIFY → DOCUMENT → COMMIT.**

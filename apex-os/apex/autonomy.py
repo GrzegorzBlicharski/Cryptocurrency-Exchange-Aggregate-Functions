@@ -170,8 +170,11 @@ def _today_count(db: Session, agent: str) -> int:
 
 
 def propose(db: Session, agent: str, action_type: str, payload: dict, idempotency_key: str,
-            reversible: bool = True) -> AgentAction:
-    """Route an agent's action through the gate. Idempotent per key."""
+            reversible: bool = True, preauthorized: bool = False) -> AgentAction:
+    """Route an agent's action through the gate. Idempotent per key.
+
+    `preauthorized` = the user put autonomous missions in "autonomous" mode, which pre-authorizes
+    every SAFE (internal, reversible) action type. It can never unlock FORBIDDEN_AUTO types."""
     existing = db.query(AgentAction).filter_by(idempotency_key=idempotency_key).first()
     if existing:
         return existing
@@ -196,7 +199,7 @@ def propose(db: Session, agent: str, action_type: str, payload: dict, idempotenc
         if act.status == "executed":
             act.status = "prepared"
     elif level == Level.EXECUTE_SAFE:
-        if reversible and is_granted(db, action_type):
+        if reversible and (is_granted(db, action_type) or (preauthorized and action_type in SAFE_ACTION_TYPES)):
             _run(db, act)
         else:
             act.status = "awaiting_approval"
