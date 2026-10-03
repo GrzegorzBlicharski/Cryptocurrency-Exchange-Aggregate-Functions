@@ -453,8 +453,11 @@ $("skill-form").addEventListener("submit", async (ev) => {
 $("run-now").addEventListener("click", async () => {
   const btn = $("run-now"); btn.disabled = true; const before = btn.textContent; btn.textContent = "Uruchamiam…";
   try {
-    await S.mcp.callTool("Claude Code Remote", "fire_trigger", { trigger_id: S.runtime.trigger_id, text: "Uruchomione ręcznie z panelu Mission Control." });
-    btn.textContent = "Uruchomiono";
+    // A manual fire_trigger starts a fresh session without the repo; a scheduled one-shot is delivered to
+    // the runner session (which has the repo and the pre-approved permissions). So: schedule it ~1 min ahead.
+    const at = new Date(Math.ceil((Date.now() + 61000) / 60000) * 60000);
+    await S.mcp.callTool("Claude Code Remote", "update_trigger", { trigger_id: S.runtime.trigger_id, run_once_at: at.toISOString().replace(/\.\d{3}Z$/, "Z"), enabled: true });
+    btn.textContent = "Start o " + at.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
   } catch (e) {
     const msg = { server_not_connected: "Brak konektora Claude Code Remote na tym koncie.", needs_reauth: "Połącz ponownie konektor w Ustawieniach claude.ai.", not_in_manifest: "Strona nie ma zgody na uruchamianie agentów." }[e?.code] || "Nie udało się uruchomić. Spróbuj później.";
     btn.textContent = before; $("last-run").textContent = msg;
