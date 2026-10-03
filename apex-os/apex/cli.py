@@ -26,6 +26,9 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("tick", help="run due scheduled jobs once")
     dm = sub.add_parser("demo", help="load or remove synthetic demo data")
     dm.add_argument("--remove", action="store_true")
+    br = sub.add_parser("bridge", help="rebuild from an artifact-state JSON and write the Mission Control projection")
+    br.add_argument("--in", dest="in_path", required=True)
+    br.add_argument("--out", dest="out_path", required=True)
     sub.add_parser("mcp", help="run the MCP server on stdio")
     sub.add_parser("sync", help="run all configured integration syncs now")
     mg = sub.add_parser("migrate", help="apply database migrations (alembic upgrade head)")
@@ -34,6 +37,14 @@ def main(argv: list[str] | None = None) -> None:
     bk.add_argument("--dest", default=None)
     a = p.parse_args(argv)
 
+    if a.cmd == "bridge":  # ephemeral: personal data stays in memory and the session's temp dir
+        import os
+        import tempfile
+
+        os.environ["APEX_DATABASE_URL"] = "sqlite://"
+        os.environ["APEX_DATA_DIR"] = tempfile.mkdtemp(prefix="apex-bridge-")
+        os.environ.setdefault("APEX_SCHEDULER_ENABLED", "false")
+        get_settings.cache_clear()
     s = get_settings()
     db.init(s)
     today = datetime.now(s.tz).date()
@@ -69,6 +80,10 @@ def main(argv: list[str] | None = None) -> None:
             else:
                 demo.seed(d, today)
                 print("demo data loaded (source='demo'); remove with: apex demo --remove")
+    elif a.cmd == "bridge":
+        from .bridge import main as bridge_main
+
+        print(json.dumps(bridge_main(a.in_path, a.out_path), ensure_ascii=False))
     elif a.cmd == "mcp":
         from .mcp_server import serve
 

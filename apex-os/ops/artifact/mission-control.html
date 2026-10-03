@@ -1,0 +1,490 @@
+<title>APEX Mission Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an operations console. One header strip, five tabs, dense cards; summary first, evidence one click deeper. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --surface-2:#eaeef4; --ink:#141b26; --muted:#5a6578; --line:#d5dbe5;
+  --accent:#b8620a; --accent-ink:#ffffff; --ok:#1f7a4d; --warn:#a56200; --risk:#b3261e; --info:#2f5f9e;
+  --font-ui:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-data:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e131b; --surface:#151c27; --surface-2:#1c2533; --ink:#e6ebf2; --muted:#93a0b4; --line:#2a3546;
+  --accent:#f0a24a; --accent-ink:#1a1206; --ok:#5cc28e; --warn:#e8b053; --risk:#f07a72; --info:#7fa8e0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e131b; --surface:#151c27; --surface-2:#1c2533; --ink:#e6ebf2; --muted:#93a0b4; --line:#2a3546;
+  --accent:#f0a24a; --accent-ink:#1a1206; --ok:#5cc28e; --warn:#e8b053; --risk:#f07a72; --info:#7fa8e0; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--font-ui);padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1080px;margin:0 auto}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 0;border-bottom:1px solid var(--line)}
+.bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.brand{font-weight:700;letter-spacing:.14em;font-size:13px}
+.brand small{font-weight:500;letter-spacing:0;color:var(--muted);margin-left:8px;font-size:13px}
+.meta{font:12px var(--font-data);color:var(--muted)}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;margin-top:10px}
+nav.tabs button{background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);font:600 14px var(--font-ui);padding:8px 10px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs .count{font:11px var(--font-data);background:var(--risk);color:#fff;border-radius:99px;padding:0 6px;margin-left:4px}
+main{padding-block:16px}
+h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px;font-weight:600}
+h3{font-size:16px;margin:0 0 4px;text-wrap:balance}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.grid > *{min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.card.key{border-color:var(--accent)}
+.num{font:600 28px/1 var(--font-data);font-variant-numeric:tabular-nums}
+.num small{font:500 12px var(--font-ui);color:var(--muted);margin-left:6px}
+.muted{color:var(--muted)} .small{font-size:13px} .mono{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font:500 11px var(--font-data);padding:1px 7px;border-radius:99px;background:var(--surface-2);color:var(--muted);margin-right:4px}
+.chip.ok{color:var(--ok)} .chip.warn{color:var(--warn)} .chip.risk{color:var(--risk)} .chip.info{color:var(--info)}
+.state-SUSTAINABLE{color:var(--ok)} .state-STRAINED{color:var(--warn)} .state-OVERLOADED,.state-CRITICAL{color:var(--risk)} .state-UNKNOWN{color:var(--muted)}
+.stripe{border-left:3px solid var(--line);padding-left:10px}
+.stripe.CRITICAL{border-left-color:var(--risk)} .stripe.IMPORTANT{border-left-color:var(--warn)} .stripe.FYI{border-left-color:var(--info)}
+ol.top3{margin:0;padding-left:20px;display:grid;gap:12px}
+details{margin-top:6px} summary{cursor:pointer;color:var(--info);font-size:13px}
+details .why{font-size:13px;border-left:2px solid var(--line);padding:4px 10px;margin-top:6px;display:grid;gap:3px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.between{justify-content:space-between}
+button.btn,a.btn{font:600 14px var(--font-ui);border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.ghost{border-color:transparent;background:none;color:var(--info);padding:4px 6px}
+button.danger{color:var(--risk)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input,select,textarea{width:100%;font:14px var(--font-ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
+textarea{min-height:84px;resize:vertical}
+.form{display:grid;gap:4px 12px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.form .full{grid-column:1/-1}
+.list{display:grid;gap:8px}
+.empty{border:1px dashed var(--line);border-radius:var(--r);padding:16px;color:var(--muted);font-size:14px}
+.notice{padding:10px 12px;border-radius:6px;background:var(--surface-2);font-size:14px}
+.notice.err{color:var(--risk)}
+meter{width:100%;height:6px}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;font-size:13px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="bar">
+    <div class="brand">APEX<small id="today-label"></small></div>
+    <div class="row">
+      <span class="meta" id="last-run">Agenci jeszcze nie uruchomieni</span>
+      <button class="btn primary" id="run-now" type="button" disabled>Uruchom agentów</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Sekcje">
+    <button role="tab" id="tab-today" aria-selected="true" data-tab="today">Dziś</button>
+    <button role="tab" id="tab-log" aria-selected="false" data-tab="log">Zapisz</button>
+    <button role="tab" id="tab-decide" aria-selected="false" data-tab="decide">Decyzje<span class="count" id="decide-count" hidden></span></button>
+    <button role="tab" id="tab-agents" aria-selected="false" data-tab="agents">Agenci</button>
+    <button role="tab" id="tab-goals" aria-selected="false" data-tab="goals">Cele</button>
+  </nav>
+</header>
+
+<main>
+  <div class="notice err" id="no-db" hidden>Ta strona przechowuje dane w swojej bazie, ale baza nie jest teraz dostępna. Otwórz stronę zalogowany na swoje konto claude.ai.</div>
+
+  <!-- TODAY -->
+  <section id="panel-today" role="tabpanel">
+    <div class="empty" id="today-empty">Brak analizy. Po pierwszym uruchomieniu agentów zobaczysz tu priorytety, regenerację i wąskie gardło. Zacznij od zakładki <b>Zapisz</b> i <b>Cele</b>.</div>
+    <div id="today-body" hidden>
+      <div class="grid">
+        <div class="card"><div class="muted small">APEX SCORE · gdzie jestem</div>
+          <div class="num" id="score">–</div><div class="small">Wąskie gardło: <b id="bottleneck">–</b></div>
+          <details><summary>Jak liczone?</summary><div class="why" id="score-explain"></div></details></div>
+        <div class="card"><div class="muted small">REGENERACJA · czy dam radę</div>
+          <div class="num" id="sus">–</div>
+          <div class="small" id="capacity"></div><div class="small muted" id="drivers"></div></div>
+        <div class="card key"><div class="muted small">UNIKAJ DZIŚ</div><div id="avoid" class="small"></div>
+          <div class="small muted" id="coverage"></div></div>
+      </div>
+      <h2>Top 3 na dziś</h2>
+      <div class="card"><ol class="top3" id="top3"></ol></div>
+      <h2>Co się zmieniło</h2>
+      <div class="list" id="signals"></div>
+      <h2>Plan dnia</h2>
+      <div class="card" id="plan"><div class="muted small">Brak planu na dziś. Dodaj zadanie z Top 3 przyciskiem „do planu”.</div></div>
+      <h2>Domeny</h2>
+      <div class="grid" id="domains"></div>
+    </div>
+  </section>
+
+  <!-- LOG -->
+  <section id="panel-log" role="tabpanel" hidden>
+    <div class="card">
+      <h3>Szybki wpis</h3>
+      <p class="small muted">Napisz zwykłym językiem, co zrobiłeś. Claude zamieni to na dane do zatwierdzenia. Liczy się do Twojego planu Pro.</p>
+      <label for="capture-text">Co dziś?</label>
+      <textarea id="capture-text" placeholder="Np. spałem 7h (23:30–06:30), 45 min mówienia po niemiecku rano, 20 pytań z prawa umów – 14 dobrze, 8 tys. kroków, telefon 95 min"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="capture-parse" type="button">Rozpoznaj</button><span class="small muted" id="capture-status"></span></div>
+      <div id="capture-preview" class="list" style="margin-top:10px"></div>
+      <div class="row" style="margin-top:8px" id="capture-save-row" hidden><button class="btn primary" id="capture-save" type="button">Zapisz wpisy</button><button class="btn" id="capture-clear" type="button">Wyczyść</button></div>
+    </div>
+    <h2>Formularz</h2>
+    <div class="card">
+      <label for="form-kind">Rodzaj</label>
+      <select id="form-kind"></select>
+      <form class="form" id="form-fields"></form>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="form-save" type="button">Zapisz</button><span class="small muted" id="form-status"></span></div>
+    </div>
+    <h2>Ostatnie wpisy</h2>
+    <div class="card tablewrap"><table><thead><tr><th>Dzień</th><th>Rodzaj</th><th>Dane</th><th></th></tr></thead><tbody id="recent"></tbody></table></div>
+  </section>
+
+  <!-- DECIDE -->
+  <section id="panel-decide" role="tabpanel" hidden>
+    <h2>Wymaga Twojej decyzji</h2>
+    <div class="list" id="approvals"><div class="empty">Nic nie czeka na decyzję.</div></div>
+    <h2>Skrzynka</h2>
+    <div class="list" id="inbox"><div class="empty">Pusto. Agenci piszą tu tylko to, co ma znaczenie.</div></div>
+  </section>
+
+  <!-- AGENTS -->
+  <section id="panel-agents" role="tabpanel" hidden>
+    <div class="card"><div class="row between"><div><b>Jak pracują agenci</b><div class="small muted" id="runtime-note">Sesje Claude Code uruchamiane według harmonogramu albo przyciskiem. Działają w ramach Twojego planu Pro.</div></div></div></div>
+    <h2>Misje</h2>
+    <div class="list" id="missions"><div class="empty">Brak misji. Dodaj cel, a agent dostanie misję przy najbliższym uruchomieniu.</div></div>
+    <h2>Ostatnie uruchomienia</h2>
+    <div class="list" id="runs"><div class="empty">Jeszcze żadnych.</div></div>
+  </section>
+
+  <!-- GOALS -->
+  <section id="panel-goals" role="tabpanel" hidden>
+    <div class="list" id="goals"><div class="empty">Brak celów. Dodaj pierwszy poniżej. Wagi 1–5 kierują priorytetami.</div></div>
+    <h2>Nowy cel</h2>
+    <form class="card form" id="goal-form">
+      <div class="full"><label for="goal-title">Cel</label><input id="goal-title" required placeholder="Np. Zdać Goethe C1 do czerwca 2027"></div>
+      <div><label for="goal-domain">Domena</label><select id="goal-domain">
+        <option value="german">Niemiecki</option><option value="law">Prawo</option><option value="career">Kariera</option>
+        <option value="fitness">Ruch</option><option value="recovery">Regeneracja</option><option value="attention">Uwaga</option>
+        <option value="productivity">Wykonanie</option><option value="other">Inne</option></select></div>
+      <div><label for="goal-weight">Waga 1–5</label><input id="goal-weight" type="number" min="1" max="5" value="3"></div>
+      <div><label for="goal-deadline">Termin</label><input id="goal-deadline" type="date"></div>
+      <div class="full"><label for="goal-why">Dlaczego to ważne</label><input id="goal-why"></div>
+      <div class="full"><button class="btn primary" type="submit">Dodaj cel</button></div>
+    </form>
+    <h2>Umiejętności (do dopasowania ofert)</h2>
+    <div class="list" id="skills"></div>
+    <form class="card form" id="skill-form">
+      <div><label for="skill-name">Umiejętność</label><input id="skill-name" required placeholder="German"></div>
+      <div><label for="skill-level">Poziom 0–5</label><input id="skill-level" type="number" min="0" max="5" value="3"></div>
+      <div class="full"><label for="skill-evidence">Dowód (certyfikat, projekt)</label><input id="skill-evidence"></div>
+      <div class="full"><button class="btn" type="submit">Zapisz umiejętność</button></div>
+    </form>
+  </section>
+</main>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pad = (n) => String(n).padStart(2, "0");
+const localDay = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const TODAY = localDay();
+$("today-label").textContent = new Date().toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" });
+
+/* ---------- tabs */
+document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("nav.tabs button").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+  document.querySelectorAll("main > section").forEach((s) => { s.hidden = s.id !== "panel-" + b.dataset.tab; });
+  try { localStorage.setItem("apex-tab", b.dataset.tab); } catch (_) {}
+}));
+try { const t = localStorage.getItem("apex-tab"); if (t) document.querySelector(`[data-tab="${t}"]`)?.click(); } catch (_) {}
+
+/* ---------- log kinds (mirror of apex/logbook.py SPECS; the engine validates again) */
+const KINDS = {
+  german_session: { label: "Niemiecki – sesja", fields: [["day","date"],["minutes","int","minuty"],["skill","select","umiejętność",["speaking","writing","reading","listening","vocabulary","grammar"]],["mode","select","tryb",["active","passive"]],["focus","int","skupienie 1–5"],["accuracy","float","poprawność % (opc.)"]] },
+  law_session: { label: "Prawo – sesja", fields: [["day","date"],["minutes","int","minuty"],["area","text","dziedzina (np. contract)"],["activity","select","aktywność",["reading","questions","drafting","contract_analysis","argumentation","research","case_analysis"]],["focus","int","skupienie 1–5"]] },
+  questions: { label: "Pytania (wynik)", fields: [["day","date"],["domain","select","domena",["law","german"]],["area","text","dziedzina"],["topic","text","temat (opc.)"],["total","int","ile pytań"],["correct","int","ile dobrze"]] },
+  test: { label: "Test", fields: [["day","date"],["domain","select","domena",["german","law","other"]],["area","text","obszar"],["score","float","wynik"],["max_score","float","maksimum"]] },
+  sleep: { label: "Sen", fields: [["day","date","rano dnia"],["bed_time","time","położenie się"],["wake_time","time","pobudka"],["duration_min","int","długość (min, opc.)"],["quality","int","jakość 1–5"]] },
+  energy: { label: "Energia", fields: [["day","date"],["level","int","energia 1–10"],["stress","int","stres 1–10 (opc.)"]] },
+  recovery: { label: "Regeneracja", fields: [["day","date"],["subjective","int","wypoczęcie 1–10"],["resting_hr","int","tętno spocz. (opc.)"]] },
+  movement: { label: "Ruch (dzień)", fields: [["day","date"],["steps","int","kroki"],["active_min","int","aktywne min (opc.)"]] },
+  workout: { label: "Trening", fields: [["day","date"],["kind","select","rodzaj",["strength","run","cycling","mobility","walk","swim","other"]],["minutes","int","minuty"],["rpe","int","wysiłek 1–10"]] },
+  screen_time: { label: "Czas ekranowy", fields: [["day","date"],["total_min","int","ekran łącznie (min)"],["phone_min","int","telefon (min)"],["social_min","int","social (min, opc.)"],["pickups","int","podniesienia (opc.)"]] },
+  deep_work: { label: "Głęboka praca", fields: [["day","date"],["minutes","int","minuty"],["domain","select","domena",["german","law","career","productivity","other"]],["task","text","zadanie"],["interruptions","int","przerwania"],["quality","int","jakość 1–5"]] },
+};
+
+/* ---------- state */
+const S = { db: null, user: null, sample: null, mcp: null, projection: null, events: [], inbox: [], approvals: [], missions: [], runs: [], goals: [], skills: [], plan: null, runtime: null };
+
+/* ---------- renderers */
+function chipForState(score) { return score == null ? "chip" : score >= 70 ? "chip ok" : score >= 50 ? "chip warn" : "chip risk"; }
+function whyBlock(a) {
+  const w = a.why || {}; const c = a.criteria || {};
+  return `<details><summary>Dlaczego?</summary><div class="why">
+    <div><b>Dane:</b> ${esc((w.data_used || []).join(", ") || "—")}</div>
+    <div><b>Rozumowanie:</b> ${esc(w.reasoning)}</div>
+    <div><b>Spodziewany efekt:</b> ${esc(w.expected_benefit)}</div>
+    <div><b>Pewność:</b> ${esc(w.confidence)}</div>
+    ${w.alternatives?.length ? `<div><b>Alternatywy:</b> ${esc(w.alternatives.join("; "))}</div>` : ""}
+    ${w.downside ? `<div><b>Koszt:</b> ${esc(w.downside)}</div>` : ""}
+    <div class="muted mono">wpływ ${c.expected_impact}/5 · pilność ${c.urgency}/5 · zgodność ${c.strategic_alignment} · czas ${c.time_cost_min} min · energia ${c.energy_cost}/5 → ${c.score}</div>
+  </div></details>`;
+}
+function renderToday() {
+  const p = S.projection;
+  $("today-empty").hidden = !!p; $("today-body").hidden = !p;
+  if (!p) return;
+  $("score").innerHTML = p.apex_score == null ? `–<small>za mało danych</small>` : `${Math.round(p.apex_score)}<small>/100</small>`;
+  $("bottleneck").textContent = p.domains?.[p.bottleneck]?.label || p.bottleneck || "–";
+  $("score-explain").textContent = p.apex_explain || "";
+  const s = p.sustainability || {};
+  $("sus").innerHTML = s.index == null ? `<span class="state-UNKNOWN">–</span><small>nieznane</small>` : `<span class="state-${esc(s.band)}">${Math.round(s.index)}</span><small>${esc(s.band)}</small>`;
+  $("capacity").textContent = `Pojemność na skupioną pracę: ${s.capacity_min ?? "–"} min (zostało ${s.capacity_left_min ?? "–"})`;
+  $("drivers").textContent = (s.drivers || []).join(" · ");
+  $("avoid").textContent = p.brief?.avoid || "";
+  const cov = p.coverage || {};
+  $("coverage").textContent = `Dane: ${cov.events ?? 0} wpisów${cov.last_entry ? `, ostatni ${String(cov.last_entry).slice(0, 10)}` : ""} · analiza ${String(p.generated_at || "").slice(0, 16).replace("T", " ")} UTC`;
+  $("top3").innerHTML = (p.top3 || []).map((a) => `<li><div class="row between"><b>${esc(a.title)}</b><span class="chip">${esc(a.domain)} · ${a.minutes} min</span></div>
+      <div class="small muted">${esc(a.detail)}${a.note ? ` — <i>${esc(a.note)}</i>` : ""}</div>${whyBlock(a)}
+      <button class="btn ghost" type="button" data-plan-add="${esc(a.key)}">+ do planu</button></li>`).join("") || `<li class="muted">Brak działań.</li>`;
+  $("signals").innerHTML = (p.signals || []).slice(0, 8).map((g) => `<div class="card stripe ${esc(g.class)}">
+      <div class="row between"><b>${esc(g.title)}</b><span class="chip">${esc(g.class)}</span></div>
+      <div class="small">${esc(g.so_what)}</div>
+      <div class="small muted"><span class="chip info">${esc(g.evidence?.epistemic)}</span>pewność ${esc(g.evidence?.confidence)}${g.evidence?.n ? ` · n=${g.evidence.n}` : ""}${g.evidence?.caveat ? ` · ${esc(g.evidence.caveat)}` : ""}</div></div>`).join("") || `<div class="empty">Bez istotnych zmian.</div>`;
+  $("domains").innerHTML = Object.entries(p.domains || {}).map(([k, d]) => `<div class="card">
+      <div class="row between"><b>${esc(d.label)}</b><span class="num" style="font-size:22px">${d.score == null ? "–" : Math.round(d.score)}</span></div>
+      <div class="small">${esc(d.headline)}</div><div class="small muted">${esc(d.so_what)}</div></div>`).join("");
+  document.querySelectorAll("[data-plan-add]").forEach((b) => b.addEventListener("click", () => addToPlan(b.dataset.planAdd)));
+}
+function renderPlan() {
+  const items = S.plan?.items || [];
+  if (!items.length) { $("plan").innerHTML = `<div class="muted small">Brak planu na dziś. Dodaj zadanie z Top 3 przyciskiem „do planu”.</div>`; return; }
+  $("plan").innerHTML = `<div class="list">${items.map((it, i) => `<div class="row between">
+     <div style="min-width:0"><b>${esc(it.title)}</b> <span class="chip">${esc(it.domain)} · ${it.minutes} min</span> <span class="chip ${it.status === "done" ? "ok" : it.status === "skipped" ? "risk" : ""}">${esc(it.status)}</span>
+     ${it.fail_reason ? `<div class="small muted">${esc(it.fail_reason)}</div>` : ""}</div>
+     <div class="row">${["done", "partial", "skipped"].map((st) => `<button class="btn ghost" type="button" data-plan-i="${i}" data-plan-st="${st}">${{ done: "zrobione", partial: "częściowo", skipped: "pominięte" }[st]}</button>`).join("")}</div></div>`).join("")}</div>`;
+  document.querySelectorAll("[data-plan-st]").forEach((b) => b.addEventListener("click", () => setPlanStatus(+b.dataset.planI, b.dataset.planSt)));
+}
+function renderRecent() {
+  const rows = S.events.slice(-15).reverse();
+  $("recent").innerHTML = rows.map((e) => `<tr><td class="mono">${esc(e.data?.day || String(e.ts).slice(0, 10))}</td><td>${esc(KINDS[e.kind]?.label || e.kind)}</td>
+    <td class="mono small">${esc(Object.entries(e.data || {}).filter(([k]) => k !== "day").map(([k, v]) => `${k}=${v}`).join(" "))}</td>
+    <td><button class="btn ghost danger" type="button" data-del-ev="${esc(e.id)}" data-del-day="${esc(e._doc)}">usuń</button></td></tr>`).join("") || `<tr><td colspan="4" class="muted">Brak wpisów.</td></tr>`;
+  document.querySelectorAll("[data-del-ev]").forEach((b) => b.addEventListener("click", () => deleteEvent(b.dataset.delDay, b.dataset.delEv)));
+}
+function renderDecide() {
+  const pending = S.approvals.filter((a) => a.status === "pending");
+  $("decide-count").hidden = !pending.length; $("decide-count").textContent = pending.length;
+  $("approvals").innerHTML = pending.map((a) => `<div class="card stripe CRITICAL">
+      <div class="row between"><b>${esc(a.title)}</b><span class="chip">${esc(a.action_type)}</span></div>
+      <div class="small">${esc(a.summary)}</div>
+      ${a.artifact ? `<details><summary>Przygotowany materiał</summary><div class="why small" style="white-space:pre-wrap">${esc(a.artifact)}</div></details>` : ""}
+      <div class="small muted">ryzyko ${esc(a.risk ?? "?")} · odwracalne: ${a.reversible ? "tak" : "nie"} · od: ${esc(a.agent || "agent")}${a.deadline ? ` · termin ${esc(a.deadline)}` : ""}</div>
+      <div class="row" style="margin-top:6px"><button class="btn primary" type="button" data-appr="${esc(a._id)}" data-dec="approved">Zatwierdź</button>
+      <button class="btn" type="button" data-appr="${esc(a._id)}" data-dec="rejected">Odrzuć</button></div></div>`).join("") || `<div class="empty">Nic nie czeka na decyzję.</div>`;
+  const open = S.inbox.filter((i) => i.status !== "done" && i.status !== "dismissed").sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  $("inbox").innerHTML = open.map((i) => `<div class="card stripe ${esc(i.class || "FYI")}">
+      <div class="row between"><b>${esc(i.title)}</b><span class="chip">${esc(i.class || "FYI")}</span></div>
+      <div class="small">${esc(i.so_what || i.body || "")}</div>
+      ${i.evidence ? `<div class="small muted"><span class="chip info">${esc(i.evidence.epistemic || "")}</span>${esc(i.evidence.statement || "")}</div>` : ""}
+      <div class="row"><button class="btn ghost" type="button" data-inb="${esc(i._id)}" data-st="done">załatwione</button><button class="btn ghost" type="button" data-inb="${esc(i._id)}" data-st="dismissed">niepotrzebne</button></div></div>`).join("") || `<div class="empty">Pusto. Agenci piszą tu tylko to, co ma znaczenie.</div>`;
+  document.querySelectorAll("[data-appr]").forEach((b) => b.addEventListener("click", () => decide(b.dataset.appr, b.dataset.dec, b)));
+  document.querySelectorAll("[data-inb]").forEach((b) => b.addEventListener("click", () => inboxStatus(b.dataset.inb, b.dataset.st)));
+}
+function renderAgents() {
+  $("missions").innerHTML = S.missions.map((m) => `<div class="card ${m.status === "needs_user" ? "stripe CRITICAL" : ""}">
+      <div class="row between"><b>${esc(m.title)}</b><span class="chip">${esc(m.role || "")} · ${esc(m.status || "")}</span></div>
+      <meter min="0" max="100" value="${+m.progress_pct || 0}"></meter>
+      <div class="small">${+m.progress_pct || 0}% — ${esc(m.progress_summary || "bez postępu")}</div>
+      ${m.question ? `<div class="small" style="color:var(--risk)">Pytanie agenta: ${esc(m.question)}</div>` : ""}
+      ${(m.plan || []).length ? `<details><summary>Plan agenta</summary><ul class="small">${m.plan.map((s) => `<li><span class="chip">${esc(s.status)}</span>${esc(s.title)}</li>`).join("")}</ul></details>` : ""}
+      ${m.last_summary ? `<div class="small muted">Ostatnio: ${esc(m.last_summary)}</div>` : ""}
+      <div class="row" style="margin-top:6px"><input id="msg-${esc(m._id)}" placeholder="Wiadomość lub odpowiedź dla agenta"><button class="btn" type="button" data-msg="${esc(m._id)}">Wyślij</button>
+      <button class="btn ghost" type="button" data-mstat="${esc(m._id)}" data-to="${m.status === "paused" ? "active" : "paused"}">${m.status === "paused" ? "wznów" : "wstrzymaj"}</button></div></div>`).join("") || `<div class="empty">Brak misji. Dodaj cel, a agent dostanie misję przy najbliższym uruchomieniu.</div>`;
+  $("runs").innerHTML = S.runs.map((r) => `<div class="card"><div class="row between"><b class="mono">${esc(String(r.started_at || "").slice(0, 16).replace("T", " "))}</b><span class="chip ${r.status === "done" ? "ok" : "risk"}">${esc(r.status)}</span></div>
+      <div class="small">${esc(r.summary || "")}</div>${(r.sources || []).length ? `<details><summary>Czytane strony (${r.sources.length})</summary><ul class="small">${r.sources.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title || s.url)}</a></li>`).join("")}</ul></details>` : ""}</div>`).join("") || `<div class="empty">Jeszcze żadnych.</div>`;
+  const last = S.runs[0];
+  $("last-run").textContent = last ? `Ostatnio: ${String(last.started_at || "").slice(0, 16).replace("T", " ")} UTC` : "Agenci jeszcze nie uruchomieni";
+  document.querySelectorAll("[data-msg]").forEach((b) => b.addEventListener("click", () => sendMessage(b.dataset.msg)));
+  document.querySelectorAll("[data-mstat]").forEach((b) => b.addEventListener("click", () => missionStatus(b.dataset.mstat, b.dataset.to)));
+  $("run-now").disabled = !(S.mcp && S.runtime?.trigger_id);
+  if (S.runtime?.schedule) $("runtime-note").textContent = `Harmonogram: ${S.runtime.schedule}. Działają w ramach Twojego planu Pro.`;
+}
+function renderGoals() {
+  $("goals").innerHTML = S.goals.map((g) => `<div class="card"><div class="row between"><b>${esc(g.title)}</b><span class="chip">${esc(g.domain)} · waga ${g.weight}</span></div>
+     ${g.why ? `<div class="small muted">${esc(g.why)}</div>` : ""}<div class="row small">${g.deadline ? `<span class="mono">termin ${esc(g.deadline)}</span>` : ""}<span class="chip">${esc(g.status)}</span>
+     <button class="btn ghost" type="button" data-goal="${esc(g._id)}" data-gst="${g.status === "active" ? "paused" : "active"}">${g.status === "active" ? "wstrzymaj" : "aktywuj"}</button>
+     <button class="btn ghost" type="button" data-goal="${esc(g._id)}" data-gst="done">osiągnięty</button></div></div>`).join("") || `<div class="empty">Brak celów. Dodaj pierwszy poniżej. Wagi 1–5 kierują priorytetami.</div>`;
+  $("skills").innerHTML = S.skills.map((s) => `<div class="row small"><b>${esc(s.name)}</b><span class="chip">${s.level}/5</span><span class="muted">${esc(s.evidence || "")}</span></div>`).join("");
+  document.querySelectorAll("[data-goal]").forEach((b) => b.addEventListener("click", () => goalStatus(b.dataset.goal, b.dataset.gst)));
+}
+
+/* ---------- writes (owner-only; one write at a time per doc) */
+async function appendEvents(entries) {
+  const byDay = {};
+  for (const e of entries) (byDay[e.data.day || TODAY] ||= []).push(e);
+  for (const [day, list] of Object.entries(byDay)) {
+    const ref = S.db.doc("events/" + day);
+    const snap = await ref.get();
+    const prev = snap.exists ? (snap.data().entries || []) : [];
+    await ref.set({ day, entries: [...prev, ...list] });
+  }
+}
+function cleanData(kind, raw) {
+  const spec = KINDS[kind]; const out = {};
+  for (const [name, type] of spec.fields) {
+    let v = raw[name]; if (v === undefined || v === null || v === "") continue;
+    if (type === "int") v = Math.round(Number(v)); else if (type === "float") v = Number(v);
+    if ((type === "int" || type === "float") && !Number.isFinite(v)) continue;
+    out[name] = v;
+  }
+  if (!out.day) out.day = TODAY;
+  return out;
+}
+async function deleteEvent(day, id) {
+  const ref = S.db.doc("events/" + day); const snap = await ref.get(); if (!snap.exists) return;
+  await ref.set({ day, entries: (snap.data().entries || []).filter((e) => e.id !== id) });
+}
+async function addToPlan(key) {
+  const a = [...(S.projection?.top3 || [])].find((x) => x.key === key); if (!a) return;
+  const ref = S.db.doc("plan/" + TODAY); const snap = await ref.get();
+  const items = snap.exists ? (snap.data().items || []) : [];
+  if (items.some((i) => i.key === key)) return;
+  await ref.set({ day: TODAY, items: [...items, { id: uid(), key, title: a.title, domain: a.domain, minutes: a.minutes, status: "planned" }] });
+}
+async function setPlanStatus(i, st) {
+  const ref = S.db.doc("plan/" + TODAY); const snap = await ref.get(); if (!snap.exists) return;
+  const items = [...(snap.data().items || [])]; if (!items[i]) return;
+  let reason = items[i].fail_reason || "";
+  if (st === "skipped" && !reason) reason = "";
+  items[i] = { ...items[i], status: st, fail_reason: reason, updated_at: new Date().toISOString() };
+  await ref.set({ day: TODAY, items });
+}
+async function decide(id, decision, btn) {
+  btn.disabled = true;
+  await S.db.doc("approvals/" + id).update({ status: decision, decided_at: new Date().toISOString() });
+}
+async function inboxStatus(id, st) { await S.db.doc("inbox/" + id).update({ status: st, updated_at: new Date().toISOString() }); }
+async function sendMessage(id) {
+  const inp = $("msg-" + id); const text = inp.value.trim(); if (!text) return;
+  const m = S.missions.find((x) => x._id === id);
+  const messages = [...(m?.messages || []), { at: new Date().toISOString(), text }];
+  await S.db.doc("missions/" + id).update({ messages, ...(m?.status === "needs_user" ? { status: "active", question: "" } : {}) });
+  inp.value = "";
+}
+async function missionStatus(id, to) { await S.db.doc("missions/" + id).update({ status: to }); }
+async function goalStatus(id, st) { await S.db.doc("goals/" + id).update({ status: st }); }
+
+/* ---------- quick capture (Claude on the viewer's plan) */
+let parsed = [];
+function renderPreview() {
+  $("capture-preview").innerHTML = parsed.map((e, i) => `<div class="card small row between"><div style="min-width:0"><b>${esc(KINDS[e.kind]?.label || e.kind)}</b>
+     <span class="mono">${esc(Object.entries(e.data).map(([k, v]) => `${k}=${v}`).join(" "))}</span></div>
+     <button class="btn ghost danger" type="button" data-rm="${i}">usuń</button></div>`).join("");
+  $("capture-save-row").hidden = !parsed.length;
+  document.querySelectorAll("[data-rm]").forEach((b) => b.addEventListener("click", () => { parsed.splice(+b.dataset.rm, 1); renderPreview(); }));
+}
+$("capture-parse").addEventListener("click", async () => {
+  const text = $("capture-text").value.trim(); if (!text) return;
+  if (!S.sample) { $("capture-status").textContent = "Rozpoznawanie tekstu jest tu niedostępne. Użyj formularza poniżej."; return; }
+  $("capture-status").textContent = "Rozpoznaję…"; $("capture-parse").disabled = true;
+  const spec = Object.entries(KINDS).map(([k, v]) => `${k}: ${v.fields.map((f) => f[0] + (f[3] ? "(" + f[3].join("|") + ")" : "")).join(", ")}`).join("\n");
+  try {
+    const out = await S.sample.json(`Zamień notatkę użytkownika na wpisy dziennika. Dzisiaj jest ${TODAY}. Używaj WYŁĄCZNIE tych rodzajów i pól:\n${spec}\n` +
+      `Zasady: day w formacie YYYY-MM-DD (domyślnie dzisiaj; sen przypisz do dnia pobudki), liczby jako liczby, czas HH:MM, nie zgaduj brakujących wartości, pomiń to, czego nie da się zmapować i wypisz to w "unmapped".\n` +
+      `Zwróć JSON: {"entries":[{"kind":"...","data":{...}}],"unmapped":["..."]}\n\nNotatka:\n${text}`, { modelTier: "quick" });
+    parsed = (out?.entries || []).filter((e) => KINDS[e.kind] && e.data).map((e) => ({ kind: e.kind, data: cleanData(e.kind, e.data) }));
+    $("capture-status").textContent = parsed.length ? `Rozpoznano ${parsed.length}. Sprawdź i zapisz.` + (out?.unmapped?.length ? ` Pominięto: ${out.unmapped.join("; ")}` : "") : "Nie rozpoznano wpisów. Spróbuj formularza.";
+    renderPreview();
+  } catch (e) {
+    $("capture-status").textContent = e?.code === "not_granted" ? "Brak zgody na użycie Claude na tej stronie. Użyj formularza." : e?.code === "rate_limited" ? "Limit chwilowo wyczerpany. Spróbuj za chwilę albo użyj formularza." : "Nie udało się rozpoznać. Użyj formularza.";
+  } finally { $("capture-parse").disabled = false; }
+});
+$("capture-save").addEventListener("click", async () => {
+  const entries = parsed.map((e) => ({ id: uid(), ts: new Date().toISOString(), kind: e.kind, data: e.data, source: "capture" }));
+  $("capture-save").disabled = true;
+  try { await appendEvents(entries); parsed = []; renderPreview(); $("capture-text").value = ""; $("capture-status").textContent = `Zapisano ${entries.length}.`; }
+  catch (e) { $("capture-status").textContent = e?.code === "quota_exceeded" ? "Baza strony jest pełna. Usuń stare wpisy." : "Nie zapisano. Spróbuj ponownie."; }
+  finally { $("capture-save").disabled = false; }
+});
+$("capture-clear").addEventListener("click", () => { parsed = []; renderPreview(); $("capture-status").textContent = ""; });
+
+/* ---------- manual form */
+$("form-kind").innerHTML = Object.entries(KINDS).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("");
+function renderForm() {
+  const spec = KINDS[$("form-kind").value];
+  $("form-fields").innerHTML = spec.fields.map(([name, type, label, opts]) => {
+    const id = `f-${$("form-kind").value}-${name}`; const l = esc(label || ({ day: "dzień" }[name] || name));
+    if (type === "select") return `<div><label for="${id}">${l}</label><select id="${id}" name="${name}">${opts.map((o) => `<option>${o}</option>`).join("")}</select></div>`;
+    const t = type === "date" ? "date" : type === "time" ? "time" : (type === "int" || type === "float") ? "number" : "text";
+    return `<div><label for="${id}">${l}</label><input id="${id}" name="${name}" type="${t}" ${type === "float" ? 'step="any"' : ""} ${type === "date" ? `value="${TODAY}"` : ""}></div>`;
+  }).join("");
+}
+$("form-kind").addEventListener("change", renderForm); renderForm();
+$("form-save").addEventListener("click", async () => {
+  const kind = $("form-kind").value; const raw = {};
+  new FormData($("form-fields")).forEach((v, k) => { raw[k] = v; });
+  const data = cleanData(kind, raw);
+  try { await appendEvents([{ id: uid(), ts: new Date().toISOString(), kind, data, source: "form" }]); $("form-status").textContent = "Zapisano."; renderForm(); }
+  catch (_) { $("form-status").textContent = "Nie zapisano. Spróbuj ponownie."; }
+});
+
+/* ---------- goals & skills */
+$("goal-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const title = $("goal-title").value.trim(); if (!title) return;
+  await S.db.collection("goals").doc(uid()).set({ title, domain: $("goal-domain").value, weight: Math.max(1, Math.min(5, +$("goal-weight").value || 3)),
+    deadline: $("goal-deadline").value || null, why: $("goal-why").value.trim(), status: "active", created_at: new Date().toISOString() });
+  $("goal-form").reset();
+});
+$("skill-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const name = $("skill-name").value.trim(); if (!name) return;
+  await S.db.collection("skills").doc(name.toLowerCase().replace(/[^a-z0-9_.~:@+-]/g, "-")).set({ name, level: Math.max(0, Math.min(5, +$("skill-level").value || 0)), evidence: $("skill-evidence").value.trim() });
+  $("skill-form").reset();
+});
+
+/* ---------- run agents now (Claude Code Remote connector, as the viewer) */
+$("run-now").addEventListener("click", async () => {
+  const btn = $("run-now"); btn.disabled = true; const before = btn.textContent; btn.textContent = "Uruchamiam…";
+  try {
+    await S.mcp.callTool("Claude Code Remote", "fire_trigger", { trigger_id: S.runtime.trigger_id, text: "Uruchomione ręcznie z panelu Mission Control." });
+    btn.textContent = "Uruchomiono";
+  } catch (e) {
+    const msg = { server_not_connected: "Brak konektora Claude Code Remote na tym koncie.", needs_reauth: "Połącz ponownie konektor w Ustawieniach claude.ai.", not_in_manifest: "Strona nie ma zgody na uruchamianie agentów." }[e?.code] || "Nie udało się uruchomić. Spróbuj później.";
+    btn.textContent = before; $("last-run").textContent = msg;
+  } finally { setTimeout(() => { btn.textContent = before; btn.disabled = !(S.mcp && S.runtime?.trigger_id); }, 4000); }
+});
+
+/* ---------- boot: render empty first, light up as capabilities resolve */
+renderToday(); renderPlan(); renderRecent(); renderDecide(); renderAgents(); renderGoals();
+(async () => {
+  const c = window.claude;
+  if (!c?.use) { $("no-db").hidden = false; return; }
+  const [db, sample, mcp] = await Promise.all([c.use("db"), c.use("sample"), c.use("mcp")]);
+  S.sample = sample; S.mcp = mcp;
+  if (!db) { $("no-db").hidden = false; return; }
+  S.db = db;
+  const fail = () => {};
+  const list = (q, key, after) => q.onSnapshot((snap) => { S[key] = snap.docs.map((d) => ({ _id: d.id, ...d.data() })); after(); }, fail);
+  db.collection("projections").orderBy("generated_at", "desc").limit(1).onSnapshot((snap) => { S.projection = snap.empty ? null : snap.docs[0].data(); renderToday(); }, fail);
+  db.doc("plan/" + TODAY).onSnapshot((d) => { S.plan = d.exists ? d.data() : null; renderPlan(); }, fail);
+  db.doc("config/runtime").onSnapshot((d) => { S.runtime = d.exists ? d.data() : null; renderAgents(); }, fail);
+  db.collection("events").orderBy("day", "desc").limit(14).onSnapshot((snap) => {
+    S.events = snap.docs.slice().reverse().flatMap((d) => (d.data().entries || []).map((e) => ({ ...e, _doc: d.id })));
+    renderRecent();
+  }, fail);
+  list(db.collection("inbox").orderBy("priority", "desc").limit(60), "inbox", renderDecide);
+  list(db.collection("approvals").orderBy("created_at", "desc").limit(60), "approvals", renderDecide);
+  list(db.collection("missions").orderBy("priority", "desc").limit(30), "missions", renderAgents);
+  list(db.collection("runs").orderBy("started_at", "desc").limit(8), "runs", renderAgents);
+  list(db.collection("goals").limit(100), "goals", renderGoals);
+  list(db.collection("skills").limit(200), "skills", renderGoals);
+})();
+})();
+</script>

@@ -1,6 +1,6 @@
 # APEX OS — Technical Specification v1.0
 
-**Status:** DRAFT FOR PRINCIPAL APPROVAL · **Supersedes:** `docs/ARCHITECTURE.md` (v0.3 prototype) once accepted
+**Status:** APPROVED WITH CHANGES (2026-10-03) — see [09 Runtime on a Claude Pro plan](09-runtime-pro-plan.md) · **Supersedes:** `docs/ARCHITECTURE.md` (v0.3 prototype) once accepted
 **Owner / principal:** the user. **Scope:** a personal, multi-year system that moves from
 *personal analytics* → *personal intelligence* → *AI Chief of Staff* → *controlled autonomous personal organization*.
 
@@ -20,6 +20,7 @@
 | 06 | [API contracts & core TypeScript interfaces](06-contracts.md) | 18 API, 19 TS interfaces |
 | 07 | [UI information architecture](07-ui.md) | 16 UI IA |
 | 08 | [Testing & implementation roadmap](08-testing-roadmap.md) | 20 Testing, 25 Roadmap |
+| 09 | [Runtime on a Claude Pro plan](09-runtime-pro-plan.md) | approved decisions: hosting, models, autonomy (supersedes parts of ADR-02/04/16) |
 
 Every load-bearing choice is recorded as an ADR (`ADR-nn`) with **DECISION · RATIONALE · ALTERNATIVES · TRADE-OFFS**.
 
@@ -80,7 +81,7 @@ until v1.0 reaches parity on each module, and serves as **reference implementati
 | Integrations | ICS, IMAP, Apple Health, jobs, RSS, ntfy, MCP | same, behind adapter interfaces in TS | **port** |
 | Security | scrypt, CSP, Fernet fields, audit | passkeys, libsodium, age backups, threat model | **extend** |
 
-## Decisions requiring your approval before implementation
+## Decisions (resolved 2026-10-03 — see doc 09; original proposals kept below for the record)
 
 1. **ADR-02 Stack.** Rebuild in TypeScript (Next.js) as your brief prefers, keeping v0.3 Python
    running until each module reaches parity. The alternative is to keep the Python core and add only a
