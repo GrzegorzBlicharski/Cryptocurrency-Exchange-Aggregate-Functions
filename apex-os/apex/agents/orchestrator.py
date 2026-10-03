@@ -10,6 +10,7 @@ Does not do the domain work itself. It:
 """
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
@@ -32,12 +33,19 @@ from .law import LawAgent
 from .learning import LearningAgent
 from .movement import MovementAgent
 from .productivity import ProductivityAgent
+from .comms import CommsAgent
+from .linkedin import LinkedInAgent
 from .recovery import RecoveryAgent
+from .research import ResearchAgent
+
+log = logging.getLogger("apex.orchestrator")
 
 AGENTS: list[Agent] = [GermanAgent(), LawAgent(), CareerAgent(), RecoveryAgent(), MovementAgent(),
-                       AttentionAgent(), ProductivityAgent(), LearningAgent()]
+                       AttentionAgent(), ProductivityAgent(), LearningAgent(), ResearchAgent(), LinkedInAgent(),
+                       CommsAgent()]
 
 ORCH_SCOPES = frozenset({"learning_sessions", "deep_work", "recovery", "workouts", "goals", "plan_items"})
+MEETING_ALLOWANCE_MIN = 60
 MAX_ACTIONS = 6
 MAX_COGNITIVE = 4
 MAX_PER_DOMAIN = 2
@@ -174,7 +182,12 @@ class Orchestrator:
         reports = {}
         for a in self.agents:
             ctx = AgentContext(db, day, self.settings, a.scopes)
-            reports[a.name] = a.assess(ctx)
+            try:
+                with db.begin_nested():  # an agent can never leave the session dirty
+                    reports[a.name] = a.assess(ctx)
+            except Exception as exc:  # one failing agent must not take down the cycle
+                log.exception("agent %s failed", a.name)
+                reports[a.name] = failed_report(a, exc)
         return reports
 
     def plan(self, db: Session, day: date) -> CyclePlan:
@@ -215,8 +228,15 @@ class Orchestrator:
         realism_factor = min(1.0, max(0.6, realism)) if realism else 1.0
         capacity = int(self.settings.daily_focus_capacity_min * s.capacity_factor * realism_factor)
         used_today = focused_by_day.get(day, 0)
-        capacity_left = max(0, capacity - used_today)
-        realism_note = f"capacity scaled to your {realism:.0%} execution rate" if realism and realism < 1 else ""
+        busy = reports["comms"].status.metrics.get("busy_min_today", 0) if "comms" in reports else 0
+        meeting_cut = max(0, busy - MEETING_ALLOWANCE_MIN)  # meetings beyond an hour eat focus time
+        capacity_left = max(0, capacity - used_today - meeting_cut)
+        notes = []
+        if realism and realism < 1:
+            notes.append(f"capacity scaled to your {realism:.0%} execution rate")
+        if meeting_cut:
+            notes.append(f"{busy} min of meetings today")
+        realism_note = "; ".join(notes)
 
         # --- candidates
         # --- bottleneck first: the weakest high-weight domain gets an alignment boost
@@ -381,6 +401,20 @@ class Orchestrator:
         return Recommendation(day=day, agent=c.agent, domain=c.domain, title=c.title[:200], detail=c.detail,
                               minutes=c.minutes, score=score, rank=rank, status=status,
                               deferred_reason=note[:300], criteria=criteria, why=why, key=c.key)
+
+
+def failed_report(agent: Agent, exc: Exception) -> AgentReport:
+    from ..engines.insights import observation
+    from .base import DomainStatus
+
+    status = DomainStatus(agent.domain, agent.label or agent.name, None, "Agent error",
+                          f"The {agent.name} agent failed this cycle; its domain is excluded, not guessed.",
+                          "unknown", needs="")
+    sig = Signal(kind="ANOMALY", severity=3, key=f"system:agent-error:{agent.name}", inbox_kind="WARNING",
+                 title=f"{agent.name} agent failed: {type(exc).__name__}",
+                 so_what="Other agents ran normally. Check logs; this domain is excluded from today's plan.",
+                 insight=observation(str(exc)[:200] or type(exc).__name__, 1, []))
+    return AgentReport(agent.name, status, [sig], [])
 
 
 def onboarding_candidate(r: AgentReport) -> CandidateAction:

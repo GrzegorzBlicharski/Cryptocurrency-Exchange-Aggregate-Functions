@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}{% set st = rep.status %}
+<h1>Mail & calendar</h1>
+<div class="card hero"><div>{{ st.headline }}</div><div class="small"><b>So what:</b> {{ st.so_what }}</div>
+<div class="small muted">Meetings today: {{ st.metrics.busy_min_today if st.metrics else 0 }} min · events next 7 days: {{ st.metrics.events_next_7d if st.metrics else 0 }}. Configure in <a href="/settings">Settings</a>.</div></div>
+<h2>Career-relevant emails (subject-level, read-only)</h2>
+<div class="card tablewrap"><table><tr><th>Received</th><th>Category</th><th>From</th><th>Subject</th><th></th></tr>
+{% for m in mails %}<tr><td class="small">{{ m.received_at.strftime("%Y-%m-%d") }}</td><td><span class="chip">{{ m.category }}</span>{% if m.deadline %} <span class="chip">due {{ m.deadline }}</span>{% endif %}</td>
+<td class="small">{{ m.sender_domain }}</td><td class="small">{{ m.subject }}{% if m.injection_flags %} <span class="error">⚠ {{ m.injection_flags | join(", ") }}</span>{% endif %}</td>
+<td>{% if not m.handled %}<form class="inline" method="post" action="/comms/{{ m.id }}/handled"><button class="link">handled</button></form>{% else %}<span class="muted small">handled</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">No relevant emails (or IMAP not configured).</td></tr>{% endfor %}</table></div>
+{% endblock %}

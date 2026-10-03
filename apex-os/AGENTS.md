@@ -14,3 +14,7 @@
   `integrations/registry.py`.
 - New log kinds: add a spec in `logbook.SPECS`. Forms, the API and CSV import follow from it.
 - Every UI element must answer "so what?"; prefer one sentence of meaning over another chart.
+- Outbound HTTP only through `integrations/http.py` (tests use `http.set_transport(httpx.MockTransport(...))`).
+- LLM calls only through `integrations/llm.py`. Always provide a deterministic fallback and catch `LLMUnavailable`.
+- Schema change: edit `models.py`, then add a migration in `apex/migrations/versions/` (batch mode for SQLite).
+- A new agent must run in isolation: never assume another report exists. Use `reports.get(...)` or `.metrics.get(...)`.

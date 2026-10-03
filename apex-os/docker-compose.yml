@@ -1,0 +1,14 @@
+# Run behind HTTPS (e.g. Caddy/Traefik/Cloudflare Tunnel) to use APEX from your phone.
+services:
+  apex:
+    build: .
+    restart: unless-stopped
+    env_file: .env          # secrets live here, never in the image or the database
+    environment:
+      APEX_COOKIE_SECURE: "true"
+    volumes:
+      - apex-data:/data      # DB + encryption key file; back it up (python -m apex backup)
+    ports:
+      - "127.0.0.1:8000:8000"
+volumes:
+  apex-data:

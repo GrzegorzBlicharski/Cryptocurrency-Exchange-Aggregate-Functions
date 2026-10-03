@@ -35,7 +35,23 @@ class Settings(BaseSettings):
     session_days: int = 14
     cookie_secure: bool = False  # set true behind HTTPS
 
+    # ---- integrations (secrets come from env only; absent = not configured) ----
     openai_api_key: str = Field(default="", validation_alias="OPENAI_API_KEY")
+    openai_model: str = "gpt-4.1-mini"
+    openai_base_url: str = "https://api.openai.com/v1"
+    llm_daily_call_cap: int = 40  # cost / runaway guard
+
+    ics_url: str = ""  # private "secret address in iCal format" of your calendar
+    calendar_feed_token: str = ""  # enables /calendar/<token>.ics (read-only plan feed)
+
+    imap_host: str = ""
+    imap_user: str = ""
+    imap_password: str = ""  # use an app password, never your main password
+    imap_folder: str = "INBOX"
+
+    ntfy_url: str = ""  # e.g. https://ntfy.sh/<long-random-topic>
+    ntfy_token: str = ""
+    webhook_url: str = ""  # optional generic push target (POST JSON)
 
     @property
     def tz(self) -> ZoneInfo:

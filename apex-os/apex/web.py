@@ -18,6 +18,7 @@ from .db import get_db
 from .dataops import export_all, wipe_all
 from .engines import experiments as xp
 from .engines import radar
+from .integrations import store as istore
 from .integrations.registry import statuses
 from .models import (
     AgentAction, AgentMemory, Application, AutonomyGrant, CareerOpportunity, DailyReview, Experiment, Goal,
@@ -364,7 +365,7 @@ def _parse_requirements(text: str) -> list[dict]:
 def career(request: Request, user=Auth, db: Session = Depends(get_db)):
     rep = Orchestrator().plan(db, today()).reports["career"]
     apps = db.query(Application).all()
-    return render(request, "career.html", db=db, rep=rep, apps=apps)
+    return render(request, "career.html", db=db, rep=rep, apps=apps, llm_on=bool(get_settings().openai_api_key))
 
 
 @router.post("/career")
@@ -517,7 +518,8 @@ def memory_op(mid: int, op: str, content: str = Form(""), user=Auth, db: Session
 @router.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request, user=Auth, db: Session = Depends(get_db)):
     grants = {g.action_type: g.active for g in db.query(AutonomyGrant).all()}
-    return render(request, "settings.html", db=db, integrations=statuses(get_settings()), grants=grants,
+    return render(request, "settings.html", db=db, integrations=statuses(get_settings(), db),
+                  cfg={k: istore.get(db, k) for k in istore.DEFAULTS}, llm_on=bool(get_settings().openai_api_key), grants=grants,
                   safe=sorted(autonomy.SAFE_ACTION_TYPES), forbidden=sorted(autonomy.FORBIDDEN_AUTO),
                   specs=logbook.SPECS, msg=request.query_params.get("msg"), settings=get_settings())
 

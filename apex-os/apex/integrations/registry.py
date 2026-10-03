@@ -1,14 +1,12 @@
-"""Integration registry.
-
-Each integration declares what it needs and reports an honest status. A missing or
-failing integration never blocks the core loop. `implemented=False` means the adapter
-is designed (see docs/ARCHITECTURE.md §6) but not built yet — the UI says so plainly.
-"""
+"""Integration registry with honest, live status. Missing integrations never block the core loop."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from sqlalchemy.orm import Session
+
 from ..config import Settings
+from . import store
 
 
 @dataclass
@@ -17,43 +15,66 @@ class Integration:
     name: str
     purpose: str
     scopes: tuple[str, ...]
-    secret: str | None
-    implemented: bool
-    phase: int
+    needs: str  # what configures it
+    store_key: str | None = None
+    planned: bool = False
 
-    def status(self, settings: Settings) -> str:
-        if not self.implemented:
-            return f"planned (phase {self.phase})"
-        if self.secret and not getattr(settings, self.secret, ""):
+    def status(self, settings: Settings, db: Session | None) -> str:
+        if self.planned:
+            return "not built (see docs)"
+        ok = {
+            "csv_import": True, "apple_health": True, "mcp": True,
+            "openai_responses": bool(settings.openai_api_key),
+            "openai_web_search": bool(settings.openai_api_key),
+            "google_calendar": bool(settings.ics_url),
+            "calendar_feed": len(settings.calendar_feed_token) >= 24,
+            "gmail": bool(settings.imap_host and settings.imap_user and settings.imap_password),
+            "notifications": bool(settings.ntfy_url or settings.webhook_url),
+        }.get(self.key)
+        if self.key == "job_sources" and db is not None:
+            cfg = store.get(db, "job_sources")
+            ok = bool(cfg.get("feeds") or cfg.get("arbeitnow"))
+        if self.key == "radar_feeds" and db is not None:
+            cfg = store.get(db, "radar")
+            ok = bool(cfg.get("feeds") or (cfg.get("web_queries") and settings.openai_api_key))
+        if not ok:
             return "not configured"
+        if self.store_key and db is not None:
+            when, st = store.status(db, self.store_key)
+            if when:
+                return f"ok · last sync {when:%Y-%m-%d %H:%M} · {st}"
         return "ok"
 
 
 INTEGRATIONS = [
-    Integration("csv_import", "CSV import", "Import sleep/movement/screen-time/energy exports from any app",
-                ("sleep", "movement", "screen_time", "energy", "workouts", "deep_work"), None, True, 1),
-    Integration("openai_responses", "OpenAI Responses API", "Draft CV/LinkedIn text, summarize, structured extraction",
-                ("career_opportunities", "skills"), "openai_api_key", False, 3),
-    Integration("openai_web_search", "OpenAI Web Search", "Radar + job search with citations (source + date stored)",
-                ("research_items", "career_opportunities"), "openai_api_key", False, 3),
-    Integration("openai_agents", "OpenAI Agents API", "Run subagents as hosted agents with tool scopes",
-                (), "openai_api_key", False, 5),
-    Integration("mcp", "MCP tool bus", "Expose APEX read tools / consume external tools", (), None, False, 5),
-    Integration("codex", "Codex", "Development agent for extending APEX itself", (), None, False, 5),
-    Integration("google_calendar", "Google Calendar", "Read schedule; create DRAFT focus blocks (approval required)",
-                ("plan_items",), None, False, 4),
-    Integration("gmail", "Gmail", "Read-only deadline digest; drafts only, never sends", (), None, False, 4),
-    Integration("job_sources", "Job sources", "Official job APIs / RSS feeds into the Career agent",
-                ("career_opportunities",), None, False, 3),
-    Integration("health_connect", "Health data", "Google Fit / Health Connect / wearable exports",
-                ("sleep", "movement", "recovery"), None, False, 4),
-    Integration("notifications", "Push notifications", "Web Push / ntfy for budgeted interrupts only",
-                ("inbox_items",), None, False, 4),
-    Integration("computer_use", "Browser / computer use", "Assisted form filling under approval gates",
-                (), None, False, 5),
+    Integration("csv_import", "CSV import", "Import any app's export (sleep, steps, screen time…)",
+                ("sleep", "movement", "screen_time", "energy", "workouts", "deep_work"), "built-in"),
+    Integration("apple_health", "Apple Health import", "export.xml → steps, sleep, resting HR, HRV",
+                ("movement", "sleep", "recovery"), "built-in (upload below)"),
+    Integration("openai_responses", "OpenAI Responses API", "Drafts (CV, LinkedIn), requirement extraction",
+                ("career_opportunities", "skills", "linkedin_profile"), "env OPENAI_API_KEY"),
+    Integration("openai_web_search", "OpenAI Web Search", "Radar research with citations (source + date stored)",
+                ("research_items",), "env OPENAI_API_KEY + radar web queries"),
+    Integration("job_sources", "Job sources", "RSS/Atom feeds + Arbeitnow API → Career agent",
+                ("career_opportunities",), "settings below", "job_sources"),
+    Integration("radar_feeds", "Radar feeds", "RSS/Atom + web queries → Radar (EV-gated)",
+                ("research_items",), "settings below", "radar"),
+    Integration("google_calendar", "Calendar (ICS read)", "Busy time reduces focus capacity",
+                ("calendar_events",), "env APEX_ICS_URL", "calendar"),
+    Integration("calendar_feed", "Plan → calendar feed", "Subscribe to /calendar/<token>.ics (read-only)",
+                ("plan_items",), "env APEX_CALENDAR_FEED_TOKEN (≥24 chars)"),
+    Integration("gmail", "Gmail / IMAP (read-only)", "Interview/offer/deadline emails, headers only",
+                ("mail_items",), "env APEX_IMAP_HOST / _USER / _PASSWORD (app password)", "mail"),
+    Integration("notifications", "Push (ntfy / webhook)", "Budgeted interrupts only",
+                ("inbox_items",), "env APEX_NTFY_URL or APEX_WEBHOOK_URL", "notifications"),
+    Integration("mcp", "MCP server", "Expose APEX read tools to AI clients: python -m apex mcp", (), "built-in"),
+    Integration("google_oauth", "Google Calendar/Gmail write via OAuth", "Intentionally not built: APEX never sends "
+                "mail or edits your calendar; ICS + IMAP read-only cover the use-cases", (), "—", planned=True),
+    Integration("computer_use", "Browser / computer use", "Intentionally not built: external actions stay manual "
+                "behind approval gates", (), "—", planned=True),
 ]
 
 
-def statuses(settings: Settings) -> list[dict]:
-    return [{"key": i.key, "name": i.name, "purpose": i.purpose, "status": i.status(settings),
-             "scopes": i.scopes, "implemented": i.implemented} for i in INTEGRATIONS]
+def statuses(settings: Settings, db: Session | None = None) -> list[dict]:
+    return [{"key": i.key, "name": i.name, "purpose": i.purpose, "status": i.status(settings, db),
+             "scopes": i.scopes, "needs": i.needs} for i in INTEGRATIONS]

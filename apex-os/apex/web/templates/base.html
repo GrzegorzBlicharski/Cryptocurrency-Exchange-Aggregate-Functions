@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark"><title>{% block title %}APEX OS{% endblock %}</title>
-<link rel="icon" href="data:,"><link rel="stylesheet" href="/static/app.css"><script src="/static/app.js" defer></script></head>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml"><link rel="manifest" href="/static/manifest.webmanifest"><meta name="theme-color" content="#2f5bd3"><link rel="stylesheet" href="/static/app.css"><script src="/static/app.js" defer></script></head>
 <body>
 {% set p = request.url.path %}
 <header><div class="bar"><a class="brand" href="/">APEX</a>
@@ -16,6 +16,8 @@
 <a href="/german" class="{{ 'on' if p == '/german' }}">German</a>
 <a href="/law" class="{{ 'on' if p == '/law' }}">Law</a>
 <a href="/career" class="{{ 'on' if p == '/career' }}">Career</a>
+<a href="/linkedin" class="{{ 'on' if p == '/linkedin' }}">LinkedIn</a>
+<a href="/comms" class="{{ 'on' if p == '/comms' }}">Comms</a>
 <a href="/goals" class="{{ 'on' if p == '/goals' }}">Goals</a>
 <a href="/experiments" class="{{ 'on' if p == '/experiments' }}">Experiments</a>
 <a href="/radar" class="{{ 'on' if p == '/radar' }}">Radar</a>

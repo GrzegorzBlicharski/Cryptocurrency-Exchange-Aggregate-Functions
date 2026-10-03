@@ -18,3 +18,9 @@
 {%- endmacro %}
 
 {% macro score(v) -%}{% if v is none %}<span class="muted">—</span>{% else %}{{ "%.0f"|format(v) }}{% endif %}{%- endmacro %}
+
+{% macro value(v) -%}
+{%- if v is mapping -%}<div class="kv">{% for k, x in v.items() %}<span class="muted">{{ k.replace("_", " ") }}</span><span>{{ value(x) }}</span>{% endfor %}</div>
+{%- elif v is iterable and v is not string -%}{% if v %}<ul class="plain">{% for x in v %}<li>{% if x is mapping %}{% for k, y in x.items() %}<b>{{ k.replace("_", " ") }}</b>: {{ y }}{% if not loop.last %} · {% endif %}{% endfor %}{% else %}{{ x }}{% endif %}</li>{% endfor %}</ul>{% else %}—{% endif %}
+{%- elif v is none -%}—{%- else -%}{{ v }}{%- endif -%}
+{%- endmacro %}

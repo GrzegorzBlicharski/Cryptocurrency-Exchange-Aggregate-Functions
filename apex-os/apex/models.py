@@ -271,7 +271,7 @@ class Recovery(ObservationMixin, Base):
     __tablename__ = "recovery"
     id: Mapped[int] = mapped_column(primary_key=True)
     day: Mapped[date] = mapped_column(Date, unique=True)
-    subjective: Mapped[int] = mapped_column(Integer)  # 1..10 how recovered
+    subjective: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 1..10 how recovered (None if only device data)
     soreness: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 1..10
     resting_hr: Mapped[int | None] = mapped_column(Integer, nullable=True)
     hrv_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -402,6 +402,7 @@ class InboxItem(TimestampMixin, Base):
     why: Mapped[dict] = mapped_column(default=dict)
     action_id: Mapped[int | None] = mapped_column(ForeignKey("agent_actions.id"), nullable=True)
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
+    notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class AgentAction(TimestampMixin, Base):
@@ -501,3 +502,58 @@ class MonthlyReview(TimestampMixin, Base):
     month: Mapped[str] = mapped_column(String(7), unique=True)  # YYYY-MM
     content: Mapped[dict] = mapped_column(default=dict)
     user_notes: Mapped[str | None] = mapped_column(EncryptedText, nullable=True)
+
+
+# ---------------------------------------------------------------- integrations
+class IntegrationSetting(TimestampMixin, Base):
+    """Non-secret integration configuration (feed URLs, keywords, toggles). Secrets live in env only."""
+
+    __tablename__ = "integration_settings"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key: Mapped[str] = mapped_column(String(64), unique=True)
+    value: Mapped[dict] = mapped_column(default=dict)
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_status: Mapped[str] = mapped_column(String(300), default="")
+
+
+class LinkedInProfile(TimestampMixin, Base):
+    """User-pasted snapshot of their LinkedIn profile. APEX never logs into or scrapes LinkedIn."""
+
+    __tablename__ = "linkedin_profile"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    headline: Mapped[str] = mapped_column(String(300), default="")
+    about: Mapped[str] = mapped_column(Text, default="")
+    experience: Mapped[str] = mapped_column(Text, default="")
+    skills_text: Mapped[str] = mapped_column(Text, default="")
+    activity_posts_90d: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class CalendarEvent(ObservationMixin, Base):
+    """Busy time from the user's calendar (ICS). Title encrypted; only what capacity planning needs."""
+
+    __tablename__ = "calendar_events"
+    __table_args__ = (UniqueConstraint("uid", "day"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uid: Mapped[str] = mapped_column(String(255))
+    day: Mapped[date] = mapped_column(Date, index=True)
+    start_min: Mapped[int] = mapped_column(Integer)  # minutes after local midnight
+    end_min: Mapped[int] = mapped_column(Integer)
+    all_day: Mapped[bool] = mapped_column(Boolean, default=False)
+    title: Mapped[str | None] = mapped_column(EncryptedText, nullable=True)
+
+
+class MailItem(ObservationMixin, Base):
+    """Minimal metadata of relevant emails (read-only IMAP). Bodies are never stored."""
+
+    __tablename__ = "mail_items"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    message_id: Mapped[str] = mapped_column(String(300), unique=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    day: Mapped[date] = mapped_column(Date, index=True)
+    sender_domain: Mapped[str] = mapped_column(String(200), default="")
+    subject: Mapped[str | None] = mapped_column(EncryptedText, nullable=True)
+    category: Mapped[str] = mapped_column(String(32))  # interview|deadline|application|offer|rejection|other
+    deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
+    injection_flags: Mapped[list] = mapped_column(default=list)
+    handled: Mapped[bool] = mapped_column(Boolean, default=False)

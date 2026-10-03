@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% from "_macros.html" import why, score %}
+{% block content %}{% set st = rep.status %}
+<h1>LinkedIn intelligence <span class="score">{{ score(st.score) }}</span></h1>
+<div class="card hero"><div>{{ st.headline }}</div><div class="small"><b>So what:</b> {{ st.so_what }}</div>
+<p class="small muted">APEX never logs into, scrapes, edits or publishes on LinkedIn. Paste your profile below; APEX compares it with the requirements of your target roles and prepares suggestions you apply yourself.</p></div>
+{% if st.metrics %}<div class="grid">
+<div class="card"><div class="muted small">MARKET KEYWORDS (from your target roles)</div><div class="small">{% for k in st.metrics.market_keywords %}<span class="chip {{ 'TESTED_EFFECT' if k in st.metrics.present else '' }}">{{ k }}</span> {% endfor %}</div></div>
+<div class="card"><div class="muted small">ADD (you have them)</div><div class="small">{{ st.metrics.missing_have | join(", ") or "—" }}</div>
+<div class="muted small">TO ACQUIRE FIRST</div><div class="small">{{ st.metrics.missing_lack | join(", ") or "—" }}</div></div>
+<div class="card"><div class="muted small">SECTIONS</div><div class="small">{% for k, ok in st.metrics.checks.items() %}{{ '✓' if ok else '✗' }} {{ k }} {% endfor %}{% if st.metrics.stale %}<div class="error">snapshot older than 90 days</div>{% endif %}</div></div>
+</div>{% endif %}
+{% for c in rep.candidates %}<div class="card"><b>{{ c.title }}</b><div class="small muted">{{ c.detail }}</div>{{ why(c.why) }}</div>{% endfor %}
+<form method="post" action="/linkedin/draft"><p><button class="primary">Prepare suggestions → Approvals</button></p></form>
+<h2>Profile snapshot</h2><form class="card form" method="post" action="/linkedin">
+<div class="full"><label>Headline</label><input name="headline" value="{{ p.headline if p else '' }}"></div>
+<div class="full"><label>About</label><textarea name="about">{{ p.about if p else '' }}</textarea></div>
+<div class="full"><label>Experience (paste)</label><textarea name="experience">{{ p.experience if p else '' }}</textarea></div>
+<div class="full"><label>Skills (paste)</label><textarea name="skills_text">{{ p.skills_text if p else '' }}</textarea></div>
+<div><label>Posts/comments in last 90 days</label><input name="activity_posts_90d" value="{{ p.activity_posts_90d if p else 0 }}" inputmode="numeric"></div>
+<div class="full"><button class="primary">Save snapshot</button></div></form>
+{% endblock %}

@@ -6,10 +6,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import api, db, scheduler, web
+from . import api, db, scheduler, web, web_integrations
 from .config import Settings, get_settings
 from .models import User
 from .security import NotAuthenticated
@@ -30,7 +30,13 @@ def create_app(settings: Settings | None = None, start_scheduler: bool | None = 
     app = FastAPI(title="APEX OS", version="0.1.0", lifespan=lifespan, docs_url="/api/docs", redoc_url=None)
     app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "web" / "static")), name="static")
     app.include_router(api.router)
+    app.include_router(web_integrations.router)
     app.include_router(web.router)
+
+    @app.get("/sw.js", include_in_schema=False)
+    def service_worker():  # served from root so its scope covers the app
+        return FileResponse(Path(__file__).parent / "web" / "static" / "sw.js", media_type="text/javascript",
+                            headers={"Cache-Control": "no-cache"})
 
     @app.exception_handler(NotAuthenticated)
     async def _unauth(request: Request, exc: NotAuthenticated):
@@ -48,7 +54,8 @@ def create_app(settings: Settings | None = None, start_scheduler: bool | None = 
         resp.headers.setdefault("Referrer-Policy", "same-origin")
         resp.headers.setdefault(
             "Content-Security-Policy",
-            "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'")
+            "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; worker-src 'self'; "
+            "manifest-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'")
         return resp
 
     return app

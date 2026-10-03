@@ -11,7 +11,6 @@ from sqlalchemy.pool import StaticPool
 
 from . import crypto
 from .config import Settings, get_settings
-from .models import Base
 
 _engine: Engine | None = None
 _SessionLocal: sessionmaker[Session] | None = None
@@ -43,7 +42,9 @@ def init(settings: Settings | None = None) -> Engine:
             cur.execute("PRAGMA journal_mode=WAL")
             cur.close()
 
-    Base.metadata.create_all(engine)
+    from .migrations_runner import ensure_schema
+
+    ensure_schema(engine)  # create fresh, or migrate an existing DB to head
     _engine = engine
     _SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
     return engine

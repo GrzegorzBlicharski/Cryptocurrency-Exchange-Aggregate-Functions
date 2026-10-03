@@ -5,9 +5,35 @@
 <div class="card"><p class="small muted">Only reversible, internal actions can be pre-authorized. Always require approval: {{ forbidden | join(", ") }}.</p>
 {% for a in safe %}<form method="post" action="/settings/grant" class="row"><input type="hidden" name="action_type" value="{{ a }}">
 <input type="hidden" name="active" value=""><label class="row"><input type="checkbox" name="active" {{ 'checked' if grants.get(a) }}> {{ a }} — auto-add the top 3 next best actions to today's plan (undoable)</label><button>Save</button></form>{% endfor %}</div>
-<h2>Integrations</h2><div class="card tablewrap"><table><tr><th>Integration</th><th>Status</th><th>Purpose</th><th>Data scopes</th></tr>
-{% for i in integrations %}<tr><td>{{ i.name }}</td><td><span class="chip">{{ i.status }}</span></td><td class="small">{{ i.purpose }}</td><td class="small muted">{{ i.scopes | join(", ") or "—" }}</td></tr>{% endfor %}</table>
-<p class="small muted">Missing integrations never block APEX. Planned adapters are designed but not built yet — they are not simulated.</p></div>
+<h2>Integrations</h2><div class="card tablewrap"><table><tr><th>Integration</th><th>Status</th><th>Purpose</th><th>Configured by</th></tr>
+{% for i in integrations %}<tr><td>{{ i.name }}</td><td><span class="chip">{{ i.status }}</span></td><td class="small">{{ i.purpose }}<div class="muted">scopes: {{ i.scopes | join(", ") or "—" }}</div></td><td class="small muted">{{ i.needs }}</td></tr>{% endfor %}</table>
+<p class="small muted">Secrets (API keys, IMAP password, private calendar URL, push topic) are read from environment variables only and never stored in the database. A missing or failing integration never blocks APEX.</p>
+<div class="row">{% for n in ["jobs", "radar", "calendar", "mail", "notify"] %}<form class="inline" method="post" action="/settings/sync/{{ n }}"><button>Sync {{ n }} now</button></form>{% endfor %}</div></div>
+
+<div class="grid">
+<form class="card" method="post" action="/settings/integrations/job_sources"><h3>Job sources</h3>
+<label>RSS/Atom feed URLs (https, one per line)</label><textarea name="feeds">{{ cfg.job_sources.feeds | join("\n") }}</textarea>
+<label class="row"><input type="checkbox" name="arbeitnow" {{ 'checked' if cfg.job_sources.arbeitnow }}> Arbeitnow API (German job market, public)</label>
+<label>Keywords (any must match; comma or newline)</label><input name="keywords" value="{{ cfg.job_sources.keywords | join(', ') }}">
+<label>Max new leads per sync</label><input name="max_per_sync" value="{{ cfg.job_sources.max_per_sync }}" inputmode="numeric">
+<p><button class="primary">Save</button></p></form>
+<form class="card" method="post" action="/settings/integrations/radar"><h3>Radar sources</h3>
+<label>Feeds, one per line: <code>CATEGORY|https://…</code></label><textarea name="feeds">{% for f in cfg.radar.feeds %}{{ f.category }}|{{ f.url }}
+{% endfor %}</textarea>
+<label>Web research queries (max 5; need OpenAI key{{ '' if llm_on else ' — not configured' }})</label><textarea name="web_queries">{{ cfg.radar.web_queries | join("\n") }}</textarea>
+<label>Extra relevance keywords</label><input name="keywords" value="{{ cfg.radar.keywords | join(', ') }}">
+<p><button class="primary">Save</button></p></form>
+<form class="card" method="post" action="/settings/integrations/mail"><h3>Mail (IMAP, read-only)</h3>
+<label>Look back (days)</label><input name="days" value="{{ cfg.mail.days }}" inputmode="numeric">
+<p class="small muted">Headers only; only interview/offer/deadline/application emails are kept (sender domain + encrypted subject).</p>
+<p><button class="primary">Save</button></p></form>
+<form class="card" method="post" action="/settings/integrations/notifications"><h3>Push notifications</h3>
+<input type="hidden" name="enabled" value=""><label class="row"><input type="checkbox" name="enabled" {{ 'checked' if cfg.notifications.enabled }}> Send budgeted interrupts ({{ settings.interrupt_budget_per_day }}/day max)</label>
+<p><button class="primary">Save</button></p></form>
+</div>
+<h2>Apple Health import</h2><form class="card" method="post" action="/settings/import/apple-health" enctype="multipart/form-data">
+<p class="small muted">Health app → profile → Export All Health Data → unzip → upload <code>export.xml</code>. Steps, sleep, resting HR and HRV are imported; subjective ratings are never invented.</p>
+<div class="row"><input type="file" name="file" accept=".xml"><button class="primary">Import</button></div></form>
 <h2>CSV import</h2><form class="card form" method="post" action="/settings/import" enctype="multipart/form-data">
 <div><label>Data kind</label><select name="kind">{% for k, v in specs.items() %}<option value="{{ k }}">{{ v.label }}</option>{% endfor %}</select></div>
 <div><label>File</label><input type="file" name="file" accept=".csv,text/csv"></div>

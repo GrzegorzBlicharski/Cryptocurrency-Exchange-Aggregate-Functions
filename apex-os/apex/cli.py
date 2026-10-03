@@ -26,6 +26,10 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("tick", help="run due scheduled jobs once")
     dm = sub.add_parser("demo", help="load or remove synthetic demo data")
     dm.add_argument("--remove", action="store_true")
+    sub.add_parser("mcp", help="run the MCP server on stdio")
+    sub.add_parser("sync", help="run all configured integration syncs now")
+    mg = sub.add_parser("migrate", help="apply database migrations (alembic upgrade head)")
+    mg.add_argument("--revision", default="head")
     bk = sub.add_parser("backup", help="online SQLite backup")
     bk.add_argument("--dest", default=None)
     a = p.parse_args(argv)
@@ -65,6 +69,23 @@ def main(argv: list[str] | None = None) -> None:
             else:
                 demo.seed(d, today)
                 print("demo data loaded (source='demo'); remove with: apex demo --remove")
+    elif a.cmd == "mcp":
+        from .mcp_server import serve
+
+        serve()
+    elif a.cmd == "sync":
+        from .integrations import calendar_ics, mail_imap, notify, radar_sync
+        from .integrations import jobs as jobs_src
+
+        for name, fn in [("jobs", jobs_src.sync), ("radar", radar_sync.sync), ("calendar", calendar_ics.sync),
+                         ("mail", mail_imap.sync), ("notify", notify.deliver)]:
+            with db.session_scope() as d:
+                print(name, fn(d))
+    elif a.cmd == "migrate":
+        from .migrations_runner import upgrade
+
+        upgrade(a.revision)
+        print("database at", a.revision)
     elif a.cmd == "backup":
         url = s.database_url
         if not url.startswith("sqlite:///"):

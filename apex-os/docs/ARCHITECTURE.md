@@ -239,25 +239,43 @@ an active `autonomy_grants` row for that action type, under the per-agent daily 
 
 ## 6. Integrations
 
-`integrations/registry.py` holds adapters with `status()` →
-`not_configured | ok | error` and the scopes/secrets they need. Missing
-integrations never block the system. Planned adapters: OpenAI Responses /
-Agents API (drafting, summarization, web search with citations), Codex (dev),
-MCP (tool bus), Google Calendar (read + drafts), Gmail (read-only digest,
-drafts only), job sources (RSS / official APIs), health exports (Google Fit /
-Health Connect / CSV), push notifications (Web Push / ntfy).
+Every adapter lives in `apex/integrations/`. Each one reports a live status in Settings and can fail
+without blocking the core loop: errors are recorded in `integration_settings.last_status` and `job_runs`.
+Secrets come only from the environment. Outbound HTTP goes through `integrations/http.py`, which
+allows HTTPS only, checks every redirect hop, rejects private, loopback and local addresses, caps
+responses at 5 MB and retries a bounded number of times.
 
----
+| Integration | Module | Direction | Notes |
+|---|---|---|---|
+| OpenAI Responses API | `llm.py` | out | Drafts only (CV, LinkedIn) and requirement extraction. Strict JSON schemas, a daily call cap, an audit entry per call, and external text wrapped in `<external_data>`. `store=false`. |
+| OpenAI web search | `llm.web_research` | out | Radar research. Items without a matching citation URL are dropped. Source and date are stored. |
+| Job sources | `jobs.py` | in | RSS/Atom feeds and the public Arbeitnow API. Keyword filter, dedupe by URL, a cap per sync. Requirements come from the LLM or a transparent heuristic. |
+| Radar feeds | `radar_sync.py` | in | RSS/Atom with heuristic scores (evidence 2/5 by default); the EV gate decides what is shown. |
+| Calendar | `calendar_ics.py` | in + feed | Private ICS URL. Busy time reduces focus capacity (meetings beyond 60 min). The plan is published as a read-only ICS feed protected by a token. No calendar writes. |
+| Gmail / IMAP | `mail_imap.py` | in | Mailbox selected read-only, `BODY.PEEK` headers only. Only interview, offer, deadline, application and rejection mail is kept, as sender domain plus encrypted subject. |
+| Health | `health_import.py`, CSV | in | Apple Health `export.xml` (streamed) and generic CSV for Google Fit, Health Connect and wearables. Subjective ratings are never invented. |
+| Push | `notify.py` | out | ntfy or a webhook. Only interrupt items within the budget are sent, as title plus one line, each delivered once. |
+| MCP | `mcp_server.py` | in | Tools over JSON-RPC on stdio: read access plus observation logging. There is deliberately no approve or delete tool. |
+| Google OAuth write, computer use | not built | | Left out on purpose: APEX never acts externally on the user's behalf. |
+
+Agents added in v0.2: **Research/Radar**, **LinkedIn** (user-pasted snapshot, keyword coverage
+against target roles, drafts in level-2 PREPARE; publishing is forbidden) and **Comms** (career
+email plus calendar load). The Orchestrator isolates agent failures: a crashing agent produces an
+"Agent error" status and a warning, and the rest of the cycle runs normally.
+
+Schema changes go through Alembic (`apex/migrations`). `db.init()` creates a fresh database
+directly at head, stamps and upgrades a v0.1 database, and upgrades a versioned one.
 
 ## 7. Phased roadmap
 
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | audit, architecture, repo, schema | done |
-| 1 | vertical slice: auth, logging, German, Law, Career, Recovery, Movement, Attention, Productivity, Learning agents, Orchestrator, Priority, Sustainability, Velocity, Memory, Inbox, Morning/Evening/Weekly reviews, dashboard, tests | done |
-| 2 | Experiment Engine, Monthly review, Digital Twin page, Radar (manual entry), export/backup | done (RSS import for Radar still open) |
-| 3 | LLM layer (OpenAI Responses adapter for drafting + web search with citations), Job Radar sources, LinkedIn advisor | planned |
-| 4 | Calendar/Gmail/health integrations, push notifications, Level-3 automations | planned |
-| 5 | multi-agent runtime (agents as separate workers via MCP), Postgres, Alembic migrations | planned |
+| 1 | vertical slice: auth, logging, core agents, Orchestrator, Priority, Sustainability, Velocity, Memory, Inbox, briefs and reviews, dashboard | done |
+| 2 | Experiment Engine, Monthly review, Digital Twin, Radar, export and backup | done |
+| 3 | LLM layer (Responses API, cited web research), job sources, LinkedIn advisor, Radar feeds | done |
+| 4 | calendar (ICS in, plan feed out), IMAP mail, Apple Health, push, more PREPARE actions | done |
+| 5 | MCP server, agent failure isolation, Alembic migrations, PostgreSQL extra, PWA, Docker | done |
+| next | encrypted off-site backups, more health sources, an experiment wizard for Learning-agent hypotheses | open |
 
 After each phase: **BUILD → TEST → VERIFY → DOCUMENT → COMMIT.**

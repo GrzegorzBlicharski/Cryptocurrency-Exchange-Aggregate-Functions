@@ -17,7 +17,8 @@ from sqlalchemy.orm import Session
 
 from .audit import audit
 from .config import get_settings
-from .models import AgentAction, AutonomyGrant, CareerOpportunity, PlanItem, Skill
+from .integrations import llm
+from .models import AgentAction, AutonomyGrant, CareerOpportunity, Goal, LinkedInProfile, PlanItem, Skill
 
 
 class Level(IntEnum):
@@ -69,7 +70,16 @@ def _prepare_cv_tailoring(db: Session, payload: dict) -> dict:
         else:
             gaps.append({"skill": name, "have": s.level if s else 0, "need": int(r.get("level", 3)),
                          "required": bool(r.get("required", True))})
+    draft, draft_note = None, "LLM drafting not configured — checklist only."
+    if llm.available():
+        try:
+            draft = llm.draft_cv(db, f"{opp.title} @ {opp.organization}", emphasize, gaps, opp.description or "")
+            draft_note = "LLM draft — verify every claim before use."
+        except llm.LLMUnavailable as exc:
+            draft_note = f"LLM draft unavailable: {exc}"
     return {
+        "draft": draft,
+        "draft_note": draft_note,
         "opportunity": f"{opp.title} @ {opp.organization}",
         "deadline": opp.deadline.isoformat() if opp.deadline else None,
         "headline_suggestion": f"{opp.title} candidate — " + ", ".join(e["skill"] for e in emphasize[:3]),
@@ -85,9 +95,44 @@ def _prepare_cv_tailoring(db: Session, payload: dict) -> dict:
     }
 
 
+def _draft_linkedin_update(db: Session, payload: dict) -> dict:
+    """Level-2 PREPARE: suggestions for the user to apply on LinkedIn themselves."""
+    from .agents.linkedin import market_keywords
+
+    p = db.get(LinkedInProfile, payload["profile_id"])
+    if not p:
+        raise AutonomyError("profile not found")
+    opps = db.query(CareerOpportunity).filter(CareerOpportunity.status.in_(("new", "shortlisted", "applied"))).all()
+    kws = [k for k, _ in market_keywords(opps)]
+    skills = {s.name.lower(): s for s in db.query(Skill).all()}
+    text = " ".join([p.headline, p.about, p.experience, p.skills_text]).lower()
+    add = [k for k in kws if k.lower() not in text and skills.get(k.lower()) and skills[k.lower()].level >= 2]
+    out = {
+        "add_keywords_truthfully": add,
+        "to_acquire_first": [k for k in kws if k.lower() not in text and k not in add],
+        "headline_pattern": f"<Target role> | {' · '.join((add + [s.name for s in skills.values() if s.level >= 3])[:3])} | <value you bring>",
+        "checklist": ["Headline: role you target + 2-3 market keywords you can evidence.",
+                      "About: 3 short paragraphs — what you do, proof (numbers), what you're looking for.",
+                      "Skills: pin the 3 most demanded skills you actually have.",
+                      "Activity: 1 substantive post or comment per week in your field."],
+        "note": "Suggestions only. APEX never edits or publishes on LinkedIn.",
+        "draft": None,
+    }
+    if llm.available():
+        goals = [g.title for g in db.query(Goal).filter_by(status="active").all()]
+        try:
+            out["draft"] = llm.draft_linkedin(db, {"headline": p.headline, "about": p.about[:3000],
+                                                   "experience": p.experience[:3000], "skills": p.skills_text[:1000]},
+                                              kws, goals)
+        except llm.LLMUnavailable as exc:
+            out["draft_error"] = str(exc)
+    return out
+
+
 EXECUTORS: dict[str, tuple[Level, Callable[[Session, dict], dict], Callable | None]] = {
     "add_plan_item": (Level.EXECUTE_SAFE, _add_plan_item, _undo_add_plan_item),
     "prepare_cv_tailoring": (Level.PREPARE, _prepare_cv_tailoring, None),
+    "draft_linkedin_update": (Level.PREPARE, _draft_linkedin_update, None),
 }
 SAFE_ACTION_TYPES = frozenset(k for k, (lvl, _, undo) in EXECUTORS.items() if lvl == Level.EXECUTE_SAFE and undo)
 

@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 
 from . import memory, reviews
+from .integrations import calendar_ics, mail_imap, notify, radar_sync
+from .integrations import jobs as jobs_src
 from .agents.orchestrator import Orchestrator
 from .config import get_settings
 from .db import session_scope
@@ -34,6 +36,14 @@ def due_jobs(now: datetime) -> list[tuple[str, str, Callable]]:
     if now.hour >= s.morning_brief_hour:
         jobs.append(("morning_brief", day.isoformat(), lambda db: reviews.morning_brief(db, day)))
         jobs.append(("memory_sweep", day.isoformat(), lambda db: memory.sweep(db, day)))
+    hour_key = now.strftime("%Y-%m-%dT%H")
+    if s.ics_url:
+        jobs.append(("calendar_sync", hour_key, lambda db: calendar_ics.sync(db, day)))
+    if s.imap_host:
+        jobs.append(("mail_sync", hour_key, lambda db: mail_imap.sync(db, day)))
+    if now.hour >= s.morning_brief_hour - 1:  # fresh leads before the brief
+        jobs.append(("jobs_sync", day.isoformat(), lambda db: jobs_src.sync(db)))
+        jobs.append(("radar_sync", day.isoformat(), lambda db: radar_sync.sync(db)))
     if now.hour >= s.evening_review_hour:
         jobs.append(("evening_cycle", day.isoformat(), lambda db: Orchestrator().run_cycle(db, day, force=True)))
         if now.weekday() == s.weekly_review_weekday:
@@ -59,6 +69,13 @@ def tick(now: datetime | None = None) -> list[str]:
             with session_scope() as db:
                 if not db.query(JobRun).filter_by(job=job, period=period).first():
                     db.add(JobRun(job=job, period=period, status="error", detail=str(exc)[:500]))
+    # Push delivery is not period-bound: anything interrupt-worthy and undelivered goes out now.
+    try:
+        with session_scope() as db:
+            if notify.deliver(db).get("sent"):
+                ran.append("notify")
+    except Exception:  # pragma: no cover - never let push break the loop
+        log.exception("notification delivery failed")
     return ran
 
 
